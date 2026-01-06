@@ -10,6 +10,8 @@
 #include "movie.h"
 #include "save.h"
 #include "G_ddraw.h"
+#include "automation.h"
+#include "gens.h"
 
 using namespace std;
 
@@ -28,7 +30,8 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	int argLength = argumentList.size();	//Size of command line argument
 
 	//List of valid commandline args
-	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua", ""};	//Hint:  to add new commandlines, start by inserting them here.
+	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua",
+		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-frameskip", "-turbo", ""};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad = "";		//Cfg filename
@@ -39,6 +42,15 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string FileToLoad = "";		//Any file
 	string PauseGame = "";		//adelikat: If user puts anything after -pause it will flag true, documentation will probably say put "1".  There is no case for "-paused 0" since, to my knowledge, it would serve no purpose
 	string ReadWrite = "";		//adelikat: Read Only is the default so this will be the same situation as above, any value will set to read+write status
+
+	// Automation parameters
+	string ScreenshotIntervalStr = "";	// Capture every N frames
+	string ScreenshotDirStr = "";		// Directory for screenshots
+	string ReferenceDirStr = "";		// Reference screenshots directory
+	string MaxFramesStr = "";			// Stop after N frames
+	string MaxDiffsStr = "";			// Stop after N differences
+	string FrameSkipStr = "";			// Frame skip value
+	string TurboStr = "";				// Enable turbo mode
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -91,7 +103,28 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 6:	//-lua
 			ScriptsToLoad.push_back(newCommand);
 			break;
-		case 7: //  (a filename on its own, this must come BEFORE any other options on the commandline)
+		case 7:	//-screenshot-interval
+			ScreenshotIntervalStr = newCommand;
+			break;
+		case 8:	//-screenshot-dir
+			ScreenshotDirStr = newCommand;
+			break;
+		case 9:	//-reference-dir
+			ReferenceDirStr = newCommand;
+			break;
+		case 10: //-max-frames
+			MaxFramesStr = newCommand;
+			break;
+		case 11: //-max-diffs
+			MaxDiffsStr = newCommand;
+			break;
+		case 12: //-frameskip
+			FrameSkipStr = newCommand;
+			break;
+		case 13: //-turbo
+			TurboStr = newCommand;
+			break;
+		case 14: //  (a filename on its own, this must come BEFORE any other options on the commandline)
 			if(newCommand[0] != '-')
 				FileToLoad = newCommand;
 			break;
@@ -146,7 +179,49 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 
 	//Paused
 	if (PauseGame[0]) Paused = 1;
-	
+
+	// Automation parameters
+	if (ScreenshotIntervalStr[0])
+	{
+		ScreenshotInterval = atoi(ScreenshotIntervalStr.c_str());
+		if (ScreenshotInterval < 0) ScreenshotInterval = 0;
+	}
+
+	if (ScreenshotDirStr[0])
+	{
+		strncpy(ScreenshotDir, ScreenshotDirStr.c_str(), sizeof(ScreenshotDir) - 1);
+		ScreenshotDir[sizeof(ScreenshotDir) - 1] = '\0';
+	}
+
+	if (ReferenceDirStr[0])
+	{
+		strncpy(ReferenceDir, ReferenceDirStr.c_str(), sizeof(ReferenceDir) - 1);
+		ReferenceDir[sizeof(ReferenceDir) - 1] = '\0';
+	}
+
+	if (MaxFramesStr[0])
+	{
+		MaxFrames = atoi(MaxFramesStr.c_str());
+		if (MaxFrames < 0) MaxFrames = 0;
+	}
+
+	if (MaxDiffsStr[0])
+	{
+		MaxDiffs = atoi(MaxDiffsStr.c_str());
+		if (MaxDiffs < 0) MaxDiffs = 0;
+	}
+
+	if (FrameSkipStr[0])
+	{
+		Frame_Skip = atoi(FrameSkipStr.c_str());
+		if (Frame_Skip < -1) Frame_Skip = -1;
+		if (Frame_Skip > 8) Frame_Skip = 8;
+	}
+
+	if (TurboStr[0])
+	{
+		TurboMode = TRUE;
+	}
 
 
 /* OLD CODE	

@@ -88,8 +88,8 @@
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Link>
-      <AdditionalOptions>/NODEFAULTLIB:MSVCR80.dll%3bcinitexe.obj%3b /LTCG %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>advapi32.lib;ComDlg32.Lib;gdi32.lib;user32.lib;libcmt.lib;wsock32.lib;shell32.lib;oleaut32.lib;dependencies/directx/ddraw.lib;dependencies/directx/dsound.lib;dependencies/directx/dinput.lib;dependencies/directx/dxguid.lib;winmm.lib;dependencies/libs/zlib.lib;dependencies/libs/libpng.lib;htmlhelp.lib;nafxcw.lib;vfw32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/NODEFAULTLIB:MSVCR80.dll%3bcinitexe.obj%3b /LTCG /SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalDependencies>advapi32.lib;ComDlg32.Lib;gdi32.lib;user32.lib;libcmt.lib;wsock32.lib;shell32.lib;oleaut32.lib;dependencies/directx/ddraw.lib;dependencies/directx/dsound.lib;dependencies/directx/dinput.lib;dependencies/directx/dxguid.lib;winmm.lib;dependencies/libs/zlib.lib;dependencies/libs/libpng.lib;htmlhelp.lib;vfw32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
@@ -362,6 +362,7 @@
     <ClCompile Include="src\HacksCommon.cpp" />
     <ClCompile Include="src\RKABoxHack.cpp" />
     <ClCompile Include="src\SonicHackSuite.cpp" />
+    <ClCompile Include="src\automation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="src\blit.asm">
@@ -648,6 +649,7 @@
     <ClInclude Include="src\HacksCommon.h" />
     <ClInclude Include="src\RKABoxHack.h" />
     <ClInclude Include="src\SonicHackSuite.h" />
+    <ClInclude Include="src\automation.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="src\Gens.rc" />

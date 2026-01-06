@@ -23,6 +23,7 @@
 #include "hackscommon.h"
 #include "drawutil.h"
 #include "luascript.h"
+#include "automation.h"
 
 LPDIRECTDRAW lpDD_Init;
 LPDIRECTDRAW4 lpDD;
@@ -176,6 +177,13 @@ int Update_Frame_Hook()
 	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATION);
 
 	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATIONGUI);
+
+	// Automation: capture/compare screenshots
+	Automation_OnFrame(FrameCount,
+		Bits32 ? (void*)MD_Screen32 : (void*)MD_Screen,
+		(Bits32 ? 2 : 0) | (Mode_555 ? 1 : 0),
+		(VDP_REG_SET4 & 0x1) ? 1 : 0,
+		(VDP_REG_SET2 & 0x8) ? 1 : 0);
 
 	return retval;
 }

@@ -642,10 +642,10 @@ DEFINE_LUA_FUNCTION(input_popup, "message[,type=\"yesno\"[,icon=\"question\"]]")
 	return doPopup(L, "yesno", "question");
 }
 
-const char *prompt_str = new char[];
-const char *prompt_default = new char[];
+const char *prompt_str = nullptr;
+const char *prompt_default = nullptr;
 int prompt_maxlength;
-char *prompt_result = new char[];
+char *prompt_result = nullptr;
 
 LRESULT CALLBACK LuaPromptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {

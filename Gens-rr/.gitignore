@@ -1,0 +1,43 @@
+# Build output
+Release/
+Debug/
+Output/
+*.exe
+*.dll
+*.obj
+*.o
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.idb
+
+# 7zip build
+7z/Release/
+7z/Debug/
+
+# Starscream generated files
+Starscream/Main68k/Release/
+Starscream/Main68k/Debug/
+Starscream/Main68k/main68k.asm
+Starscream/Sub68k/Release/
+Starscream/Sub68k/Debug/
+Starscream/Sub68k/sub68k.asm
+
+# Generated headers
+dependencies/gitrev.h
+
+# Visual Studio
+*.suo
+*.user
+*.ncb
+*.aps
+*.sdf
+*.opensdf
+*.cachefile
+ipch/
+.vs/
+*.vcxproj.filters
+
+# Logs
+*.log
