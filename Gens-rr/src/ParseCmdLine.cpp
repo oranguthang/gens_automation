@@ -10,6 +10,7 @@
 #include "movie.h"
 #include "save.h"
 #include "G_ddraw.h"
+#include "G_dsound.h"
 #include "automation.h"
 #include "gens.h"
 
@@ -31,7 +32,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 
 	//List of valid commandline args
 	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua",
-		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-frameskip", "-turbo", ""};	//Hint:  to add new commandlines, start by inserting them here.
+		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-frameskip", "-turbo", "-nosound", ""};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad = "";		//Cfg filename
@@ -65,16 +66,24 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		if (argumentList.find(argCmds[x]) != string::npos)
 		{
 			commandBegin = argumentList.find(argCmds[x]) + argCmds[x].size() + (argCmds[x].empty()?0:1);	//Find beginning of new command
-			trunc = argumentList.substr(commandBegin);								//Truncate argumentList
-			commandEnd = trunc.find(" ");											//Find next space, if exists, new command will end here
-			if(argumentList[commandBegin] == '\"')									//Actually, if it's in quotes, extend to the end quote
+			// Bounds check for flags without parameters (like -turbo, -nosound)
+			if (commandBegin >= argLength)
 			{
-				commandEnd = trunc.find('\"', 1);
-				if(commandEnd >= 0)
-					commandBegin++, commandEnd--;
+				newCommand = "";
 			}
-			if (commandEnd < 0) commandEnd = argLength;								//If no space, new command will end at the end of list
-			newCommand = argumentList.substr(commandBegin, commandEnd);				//assign freshly parsed command to newCommand
+			else
+			{
+				trunc = argumentList.substr(commandBegin);								//Truncate argumentList
+				commandEnd = trunc.find(" ");											//Find next space, if exists, new command will end here
+				if(argumentList[commandBegin] == '\"')									//Actually, if it's in quotes, extend to the end quote
+				{
+					commandEnd = trunc.find('\"', 1);
+					if(commandEnd >= 0)
+						commandBegin++, commandEnd--;
+				}
+				if (commandEnd < 0) commandEnd = argLength;								//If no space, new command will end at the end of list
+				newCommand = argumentList.substr(commandBegin, commandEnd);				//assign freshly parsed command to newCommand
+			}
 		}
 		else
 			newCommand = "";
@@ -124,7 +133,10 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 13: //-turbo
 			TurboStr = newCommand;
 			break;
-		case 14: //  (a filename on its own, this must come BEFORE any other options on the commandline)
+		case 14: //-nosound
+			Sound_Enable = 0;
+			break;
+		case 15: //  (a filename on its own, this must come BEFORE any other options on the commandline)
 			if(newCommand[0] != '-')
 				FileToLoad = newCommand;
 			break;
