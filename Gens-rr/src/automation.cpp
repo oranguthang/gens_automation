@@ -26,10 +26,12 @@ int MaxDiffs = 10;
 int DiffCount = 0;
 char ScreenshotDir[1024] = ".";
 char ReferenceDir[1024] = "";
+unsigned char DiffColor[4] = {255, 0, 255, 255};  // BGRA: Pink (magenta) by default
 
 // Internal buffer for reference image (320x240 max, BGRA = 4 bytes per pixel)
 static unsigned char RefBuffer[320 * 240 * 4];
 static unsigned char CurrentBuffer[320 * 240 * 4];
+static unsigned char DiffBuffer[320 * 240 * 4];
 
 void Automation_Init()
 {
@@ -234,8 +236,12 @@ bool Compare_With_Reference(void* screen, int mode, int Hmode, int Vmode, const 
     // Write current frame to buffer
     WriteFrameToBGRA(screen, CurrentBuffer, mode, Hmode, Vmode, X, Y);
 
-    // Compare buffers (BGRA, ignore alpha)
+    // Compare buffers and build diff image
+    // Start with copy of reference, then overlay diff color on differing pixels
     int pixelCount = X * Y;
+    bool hasDiff = false;
+    memcpy(DiffBuffer, RefBuffer, pixelCount * 4);
+
     for (int i = 0; i < pixelCount; i++)
     {
         // Compare BGR only (skip alpha at offset +3)
@@ -243,11 +249,27 @@ bool Compare_With_Reference(void* screen, int mode, int Hmode, int Vmode, const 
             CurrentBuffer[i*4+1] != RefBuffer[i*4+1] ||  // G
             CurrentBuffer[i*4+2] != RefBuffer[i*4+2])    // R
         {
-            return false;  // Difference found
+            hasDiff = true;
+            // Overlay diff color on this pixel
+            DiffBuffer[i*4+0] = DiffColor[0];  // B
+            DiffBuffer[i*4+1] = DiffColor[1];  // G
+            DiffBuffer[i*4+2] = DiffColor[2];  // R
+            DiffBuffer[i*4+3] = DiffColor[3];  // A
         }
     }
 
-    return true;  // Screens match
+    return !hasDiff;  // true if screens match
+}
+
+// Save diff visualization image (reference with diff pixels highlighted)
+bool Save_Diff_Image(int X, int Y, const char* filename)
+{
+    FILE* fp = fopen(filename, "wb");
+    if (!fp) return false;
+
+    bool result = write_png(DiffBuffer, X, Y, fp);
+    fclose(fp);
+    return result;
 }
 
 void Automation_OnFrame(int frameCount, void* screen, int mode, int Hmode, int Vmode)
@@ -285,6 +307,14 @@ void Automation_OnFrame(int frameCount, void* screen, int mode, int Hmode, int V
         {
             // Difference found! Save current screenshot
             Save_Shot_To_File(screen, mode, Hmode, Vmode, filename);
+
+            // Also save diff visualization (reference with diff pixels highlighted)
+            char diffFilename[1024];
+            sprintf(diffFilename, "%s\\%06d_diff.png", ScreenshotDir, frameCount);
+            int X = Hmode ? 320 : 256;
+            int Y = Vmode ? 240 : 224;
+            Save_Diff_Image(X, Y, diffFilename);
+
             DiffCount++;
 
             // Check max diffs limit

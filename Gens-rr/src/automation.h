@@ -11,6 +11,7 @@ extern int MaxDiffs;               // Stop after N differences (default 10)
 extern int DiffCount;              // Current difference count
 extern char ScreenshotDir[1024];   // Directory to save screenshots
 extern char ReferenceDir[1024];    // Reference screenshots dir (empty = record mode)
+extern unsigned char DiffColor[4]; // BGRA color for diff highlighting (default: pink)
 
 // Initialize automation module (call from WinMain after config load)
 void Automation_Init();

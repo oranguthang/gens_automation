@@ -32,7 +32,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 
 	//List of valid commandline args
 	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua",
-		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-frameskip", "-turbo", "-nosound", ""};	//Hint:  to add new commandlines, start by inserting them here.
+		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-frameskip", "-turbo", "-nosound", "-window-x", "-window-y", "-diff-color", ""};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad = "";		//Cfg filename
@@ -52,6 +52,9 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string MaxDiffsStr = "";			// Stop after N differences
 	string FrameSkipStr = "";			// Frame skip value
 	string TurboStr = "";				// Enable turbo mode
+	string WindowXStr = "";				// Window X position
+	string WindowYStr = "";				// Window Y position
+	string DiffColorStr = "";			// Diff highlight color name
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -136,7 +139,16 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 14: //-nosound
 			Sound_Enable = 0;
 			break;
-		case 15: //  (a filename on its own, this must come BEFORE any other options on the commandline)
+		case 15: //-window-x
+			WindowXStr = newCommand;
+			break;
+		case 16: //-window-y
+			WindowYStr = newCommand;
+			break;
+		case 17: //-diff-color
+			DiffColorStr = newCommand;
+			break;
+		case 18: //  (a filename on its own, this must come BEFORE any other options on the commandline)
 			if(newCommand[0] != '-')
 				FileToLoad = newCommand;
 			break;
@@ -233,6 +245,57 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	if (TurboStr[0])
 	{
 		TurboMode = TRUE;
+	}
+
+	// Window position
+	if (WindowXStr[0] || WindowYStr[0])
+	{
+		int winX = WindowXStr[0] ? atoi(WindowXStr.c_str()) : 0;
+		int winY = WindowYStr[0] ? atoi(WindowYStr.c_str()) : 0;
+		SetWindowPos(HWnd, NULL, winX, winY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+	}
+
+	// Diff color (BGRA format)
+	if (DiffColorStr[0])
+	{
+		// Convert to lowercase for comparison
+		string colorName = DiffColorStr;
+		for (size_t i = 0; i < colorName.length(); i++)
+			colorName[i] = tolower(colorName[i]);
+
+		// Map color names to BGRA values
+		if (colorName == "pink" || colorName == "magenta")
+		{
+			DiffColor[0] = 255; DiffColor[1] = 0; DiffColor[2] = 255; DiffColor[3] = 255;
+		}
+		else if (colorName == "red")
+		{
+			DiffColor[0] = 0; DiffColor[1] = 0; DiffColor[2] = 255; DiffColor[3] = 255;
+		}
+		else if (colorName == "green")
+		{
+			DiffColor[0] = 0; DiffColor[1] = 255; DiffColor[2] = 0; DiffColor[3] = 255;
+		}
+		else if (colorName == "blue")
+		{
+			DiffColor[0] = 255; DiffColor[1] = 0; DiffColor[2] = 0; DiffColor[3] = 255;
+		}
+		else if (colorName == "yellow")
+		{
+			DiffColor[0] = 0; DiffColor[1] = 255; DiffColor[2] = 255; DiffColor[3] = 255;
+		}
+		else if (colorName == "cyan")
+		{
+			DiffColor[0] = 255; DiffColor[1] = 255; DiffColor[2] = 0; DiffColor[3] = 255;
+		}
+		else if (colorName == "white")
+		{
+			DiffColor[0] = 255; DiffColor[1] = 255; DiffColor[2] = 255; DiffColor[3] = 255;
+		}
+		else if (colorName == "orange")
+		{
+			DiffColor[0] = 0; DiffColor[1] = 165; DiffColor[2] = 255; DiffColor[3] = 255;
+		}
 	}
 
 
