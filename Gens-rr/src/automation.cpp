@@ -277,6 +277,13 @@ void Automation_OnFrame(int frameCount, void* screen, int mode, int Hmode, int V
     // Skip if automation disabled
     if (ScreenshotInterval <= 0) return;
 
+    // Check if movie finished - close emulator when movie playback ends
+    if (MainMovie.Status == MOVIE_FINISHED)
+    {
+        PostMessage(HWnd, WM_CLOSE, 0, 0);
+        return;
+    }
+
     // Only process on interval frames
     if (frameCount % ScreenshotInterval != 0) return;
 
