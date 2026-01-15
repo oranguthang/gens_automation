@@ -33,7 +33,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 
 	//List of valid commandline args
 	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua",
-		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-frameskip", "-turbo", "-nosound", "-window-x", "-window-y", "-diff-color",
+		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-max-memory-diffs", "-frameskip", "-turbo", "-nosound", "-window-x", "-window-y", "-diff-color",
 		"-dump-state-dir", "-dump-state-interval", "-dump-state-start", "-dump-state-end", "-save-state-dumps", "-compare-state-dumps", ""};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
@@ -51,7 +51,8 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string ScreenshotDirStr = "";		// Directory for screenshots
 	string ReferenceDirStr = "";		// Reference screenshots directory
 	string MaxFramesStr = "";			// Stop after N frames
-	string MaxDiffsStr = "";			// Stop after N differences
+	string MaxDiffsStr = "";			// Stop after N screenshot differences
+	string MaxMemoryDiffsStr = "";		// Stop after N memory differences
 	string FrameSkipStr = "";			// Frame skip value
 	string TurboStr = "";				// Enable turbo mode
 	string WindowXStr = "";				// Window X position
@@ -140,43 +141,46 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 11: //-max-diffs
 			MaxDiffsStr = newCommand;
 			break;
-		case 12: //-frameskip
+		case 12: //-max-memory-diffs
+			MaxMemoryDiffsStr = newCommand;
+			break;
+		case 13: //-frameskip
 			FrameSkipStr = newCommand;
 			break;
-		case 13: //-turbo
+		case 14: //-turbo
 			TurboStr = newCommand;
 			break;
-		case 14: //-nosound
+		case 15: //-nosound
 			Sound_Enable = 0;
 			break;
-		case 15: //-window-x
+		case 16: //-window-x
 			WindowXStr = newCommand;
 			break;
-		case 16: //-window-y
+		case 17: //-window-y
 			WindowYStr = newCommand;
 			break;
-		case 17: //-diff-color
+		case 18: //-diff-color
 			DiffColorStr = newCommand;
 			break;
-		case 18: //-dump-state-dir
+		case 19: //-dump-state-dir
 			StateDumpDirStr = newCommand;
 			break;
-		case 19: //-dump-state-interval
+		case 20: //-dump-state-interval
 			StateDumpIntervalStr = newCommand;
 			break;
-		case 20: //-dump-state-start
+		case 21: //-dump-state-start
 			StateDumpStartStr = newCommand;
 			break;
-		case 21: //-dump-state-end
+		case 22: //-dump-state-end
 			StateDumpEndStr = newCommand;
 			break;
-		case 22: //-save-state-dumps
+		case 23: //-save-state-dumps
 			SaveStateDumpsStr = newCommand;
 			break;
-		case 23: //-compare-state-dumps
+		case 24: //-compare-state-dumps
 			CompareStateDumpsStr = newCommand;
 			break;
-		case 24: //  (a filename on its own, this must come BEFORE any other options on the commandline)
+		case 25: //  (a filename on its own, this must come BEFORE any other options on the commandline)
 			if(newCommand[0] != '-')
 				FileToLoad = newCommand;
 			break;
@@ -261,6 +265,12 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	{
 		MaxDiffs = atoi(MaxDiffsStr.c_str());
 		if (MaxDiffs < 0) MaxDiffs = 0;
+	}
+
+	if (MaxMemoryDiffsStr[0])
+	{
+		MaxMemoryDiffs = atoi(MaxMemoryDiffsStr.c_str());
+		if (MaxMemoryDiffs < 0) MaxMemoryDiffs = 0;
 	}
 
 	if (FrameSkipStr[0])

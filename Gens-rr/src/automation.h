@@ -7,8 +7,10 @@
 // Global variables (defined in automation.cpp)
 extern int ScreenshotInterval;     // Capture every N frames (0 = disabled)
 extern int MaxFrames;              // Stop after N frames (0 = no limit)
-extern int MaxDiffs;               // Stop after N differences (default 10)
-extern int DiffCount;              // Current difference count
+extern int MaxDiffs;               // Stop after N screenshot differences (default 10)
+extern int DiffCount;              // Current screenshot difference count
+extern int MaxMemoryDiffs;         // Stop after N memory differences (default 10)
+extern int MemoryDiffCount;        // Current memory difference count
 extern char ScreenshotDir[1024];   // Directory to save screenshots
 extern char ReferenceDir[1024];    // Reference screenshots dir (empty = record mode)
 extern unsigned char DiffColor[4]; // BGRA color for diff highlighting (default: pink)

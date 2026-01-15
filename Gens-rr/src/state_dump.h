@@ -13,6 +13,9 @@
 #define SECTION_VDP_REGS    0x13
 #define SECTION_Z80_RAM     0x20
 #define SECTION_Z80_REGS    0x21
+#define SECTION_YM2612      0x30  // FM sound chip (5328 bytes)
+#define SECTION_PSG         0x31  // PSG sound generator (~64 bytes)
+#define SECTION_SRAM        0x40  // Battery-backed SRAM (up to 64KB)
 
 // Global variables (defined in state_dump.cpp)
 extern int StateDumpInterval;      // Dump every N frames (0 = disabled)

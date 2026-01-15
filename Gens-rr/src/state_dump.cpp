@@ -11,6 +11,8 @@
 #include "vdp_io.h"
 #include "Mem_Z80.h"
 #include "z80.h"
+#include "ym2612.h"
+#include "psg.h"
 
 // Global variables
 int StateDumpInterval = 0;
@@ -237,7 +239,7 @@ int StateDump_DumpState(int frameNumber)
     }
 
     // Prepare sections
-    const int NUM_SECTIONS = 6;
+    const int NUM_SECTIONS = 10;
     SectionEntry sections[NUM_SECTIONS];
 
     // Calculate section offsets
@@ -287,6 +289,34 @@ int StateDump_DumpState(int frameNumber)
     sections[5].flags = 0;
     current_offset += sections[5].size;
 
+    // Section 6: Z80 RAM (8KB)
+    sections[6].section_id = SECTION_Z80_RAM;
+    sections[6].offset = current_offset;
+    sections[6].size = 8 * 1024;
+    sections[6].flags = 0;
+    current_offset += sections[6].size;
+
+    // Section 7: YM2612 FM sound chip (5328 bytes)
+    sections[7].section_id = SECTION_YM2612;
+    sections[7].offset = current_offset;
+    sections[7].size = 0x14d0;  // 5328 bytes
+    sections[7].flags = 0;
+    current_offset += sections[7].size;
+
+    // Section 8: PSG sound generator (64 bytes)
+    sections[8].section_id = SECTION_PSG;
+    sections[8].offset = current_offset;
+    sections[8].size = sizeof(struct _psg);
+    sections[8].flags = 0;
+    current_offset += sections[8].size;
+
+    // Section 9: SRAM battery-backed (64KB)
+    sections[9].section_id = SECTION_SRAM;
+    sections[9].offset = current_offset;
+    sections[9].size = 64 * 1024;
+    sections[9].flags = 0;
+    current_offset += sections[9].size;
+
     // Write header
     Write_Header(f, frameNumber);
 
@@ -330,6 +360,20 @@ int StateDump_DumpState(int frameNumber)
     Collect_VDP_Registers(vdp_regs);
     fwrite(vdp_regs, 1, 24, f);
 
+    // Section 6: Z80 RAM (direct copy)
+    fwrite(Ram_Z80, 1, 8 * 1024, f);
+
+    // Section 7: YM2612 (use built-in save function)
+    unsigned char ym2612_state[0x14d0];
+    YM2612_Save_Full(ym2612_state);
+    fwrite(ym2612_state, 1, 0x14d0, f);
+
+    // Section 8: PSG (direct struct copy)
+    fwrite(&PSG, 1, sizeof(struct _psg), f);
+
+    // Section 9: SRAM (direct copy)
+    fwrite(SRAM, 1, 64 * 1024, f);
+
     fclose(f);
     return 1;
 }
@@ -350,7 +394,7 @@ int StateDump_DumpStateToFile(const char* directory, const char* basename)
     int frameNumber = 0;
 
     // Prepare sections
-    const int NUM_SECTIONS = 6;
+    const int NUM_SECTIONS = 10;
     SectionEntry sections[NUM_SECTIONS];
 
     // Calculate section offsets
@@ -400,6 +444,34 @@ int StateDump_DumpStateToFile(const char* directory, const char* basename)
     sections[5].flags = 0;
     current_offset += sections[5].size;
 
+    // Section 6: Z80 RAM
+    sections[6].section_id = SECTION_Z80_RAM;
+    sections[6].offset = current_offset;
+    sections[6].size = 8 * 1024;
+    sections[6].flags = 0;
+    current_offset += sections[6].size;
+
+    // Section 7: YM2612 FM sound chip
+    sections[7].section_id = SECTION_YM2612;
+    sections[7].offset = current_offset;
+    sections[7].size = 0x14d0;
+    sections[7].flags = 0;
+    current_offset += sections[7].size;
+
+    // Section 8: PSG sound generator
+    sections[8].section_id = SECTION_PSG;
+    sections[8].offset = current_offset;
+    sections[8].size = sizeof(struct _psg);
+    sections[8].flags = 0;
+    current_offset += sections[8].size;
+
+    // Section 9: SRAM battery-backed
+    sections[9].section_id = SECTION_SRAM;
+    sections[9].offset = current_offset;
+    sections[9].size = 64 * 1024;
+    sections[9].flags = 0;
+    current_offset += sections[9].size;
+
     // Write header
     Write_Header(f, frameNumber);
 
@@ -435,6 +507,20 @@ int StateDump_DumpStateToFile(const char* directory, const char* basename)
     unsigned char vdp_regs[24];
     Collect_VDP_Registers(vdp_regs);
     fwrite(vdp_regs, 1, 24, f);
+
+    // Z80 RAM
+    fwrite(Ram_Z80, 1, 8 * 1024, f);
+
+    // YM2612
+    unsigned char ym2612_state[0x14d0];
+    YM2612_Save_Full(ym2612_state);
+    fwrite(ym2612_state, 1, 0x14d0, f);
+
+    // PSG
+    fwrite(&PSG, 1, sizeof(struct _psg), f);
+
+    // SRAM
+    fwrite(SRAM, 1, 64 * 1024, f);
 
     fclose(f);
     return 1;

@@ -16,15 +16,28 @@
 #include "drawutil.h"
 #include "movie.h"
 #include "vdp_io.h"
+#include "Mem_M68k.h"
+#include "Cpu_68k.h"
+#include "Mem_Z80.h"
+#include "ym2612.h"
+#include "psg.h"
 
 // External function from scrshot.cpp
 extern bool write_png(void* data, int X, int Y, FILE* fp);
+
+// External memory/state buffers (not declared in headers)
+extern unsigned char Ram_68k[64 * 1024];
+extern unsigned char Ram_Z80[8 * 1024];
+extern unsigned char SRAM[64 * 1024];
+// Note: VRam, CRam, VSRam are declared in vdp_io.h
 
 // Global variables
 int ScreenshotInterval = 0;
 int MaxFrames = 0;
 int MaxDiffs = 10;
 int DiffCount = 0;
+int MaxMemoryDiffs = 10;
+int MemoryDiffCount = 0;
 char ScreenshotDir[1024] = ".";
 char ReferenceDir[1024] = "";
 unsigned char DiffColor[4] = {255, 0, 255, 255};  // BGRA: Pink (magenta) by default
@@ -41,6 +54,8 @@ void Automation_Init()
     MaxFrames = 0;
     MaxDiffs = 10;
     DiffCount = 0;
+    MaxMemoryDiffs = 10;
+    MemoryDiffCount = 0;
     strcpy(ScreenshotDir, ".");
     ReferenceDir[0] = '\0';
 
@@ -51,6 +66,7 @@ void Automation_Init()
 void Automation_Reset()
 {
     DiffCount = 0;
+    MemoryDiffCount = 0;
 }
 
 // Write current frame to BGRA buffer (based on WriteFrame from scrshot.cpp)
@@ -277,6 +293,271 @@ bool Save_Diff_Image(int X, int Y, const char* filename)
     return result;
 }
 
+// Section name lookup for CSV output
+static const char* GetSectionName(unsigned int section_id)
+{
+    switch (section_id)
+    {
+        case SECTION_M68K_RAM:  return "M68K_RAM";
+        case SECTION_M68K_REGS: return "M68K_REGS";
+        case SECTION_VDP_VRAM:  return "VDP_VRAM";
+        case SECTION_VDP_CRAM:  return "VDP_CRAM";
+        case SECTION_VDP_VSRAM: return "VDP_VSRAM";
+        case SECTION_VDP_REGS:  return "VDP_REGS";
+        case SECTION_Z80_RAM:   return "Z80_RAM";
+        case SECTION_Z80_REGS:  return "Z80_REGS";
+        case SECTION_YM2612:    return "YM2612";
+        case SECTION_PSG:       return "PSG";
+        case SECTION_SRAM:      return "SRAM";
+        default: return "UNKNOWN";
+    }
+}
+
+// Compare section data and write diffs to file
+// Returns number of differing bytes
+static int Compare_Section_And_Write(FILE* fp, const char* sectionName,
+                                     unsigned char* refData, unsigned char* currentData, int size)
+{
+    int diffCount = 0;
+    for (int i = 0; i < size; i++)
+    {
+        if (refData[i] != currentData[i])
+        {
+            int diff = (int)currentData[i] - (int)refData[i];
+            fprintf(fp, "%s,0x%04X,0x%02X,0x%02X,%d\n",
+                    sectionName, i, refData[i], currentData[i], diff);
+            diffCount++;
+        }
+    }
+    return diffCount;
+}
+
+// Read little-endian 32-bit integer from buffer
+static unsigned int Read_LE_U32(unsigned char* buf)
+{
+    return buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
+}
+
+// Collect current M68K registers into buffer (same format as state_dump.cpp)
+static void Collect_Current_M68K_Regs(unsigned char* buffer)
+{
+    unsigned char* ptr = buffer;
+
+    // D0-D7
+    for (int i = 0; i < 8; i++)
+    {
+        unsigned int val = Context_68K.dreg[i];
+        ptr[0] = (val >> 0) & 0xFF;
+        ptr[1] = (val >> 8) & 0xFF;
+        ptr[2] = (val >> 16) & 0xFF;
+        ptr[3] = (val >> 24) & 0xFF;
+        ptr += 4;
+    }
+
+    // A0-A7
+    for (int i = 0; i < 8; i++)
+    {
+        unsigned int val = Context_68K.areg[i];
+        ptr[0] = (val >> 0) & 0xFF;
+        ptr[1] = (val >> 8) & 0xFF;
+        ptr[2] = (val >> 16) & 0xFF;
+        ptr[3] = (val >> 24) & 0xFF;
+        ptr += 4;
+    }
+
+    // PC
+    unsigned int pc = Context_68K.pc;
+    ptr[0] = (pc >> 0) & 0xFF;
+    ptr[1] = (pc >> 8) & 0xFF;
+    ptr[2] = (pc >> 16) & 0xFF;
+    ptr[3] = (pc >> 24) & 0xFF;
+    ptr += 4;
+
+    // SR
+    unsigned int sr = Context_68K.sr;
+    ptr[0] = (sr >> 0) & 0xFF;
+    ptr[1] = (sr >> 8) & 0xFF;
+    ptr[2] = 0;
+    ptr[3] = 0;
+}
+
+// Collect current VDP registers into buffer
+static void Collect_Current_VDP_Regs(unsigned char* buffer)
+{
+    buffer[0] = VDP_Reg.Set1 & 0xFF;
+    buffer[1] = VDP_Reg.Set2 & 0xFF;
+    buffer[2] = VDP_Reg.Pat_ScrA_Adr & 0xFF;
+    buffer[3] = VDP_Reg.Pat_Win_Adr & 0xFF;
+    buffer[4] = VDP_Reg.Pat_ScrB_Adr & 0xFF;
+    buffer[5] = VDP_Reg.Spr_Att_Adr & 0xFF;
+    buffer[6] = VDP_Reg.Reg6 & 0xFF;
+    buffer[7] = VDP_Reg.BG_Color & 0xFF;
+    buffer[8] = VDP_Reg.Reg8 & 0xFF;
+    buffer[9] = VDP_Reg.Reg9 & 0xFF;
+    buffer[10] = VDP_Reg.H_Int & 0xFF;
+    buffer[11] = VDP_Reg.Set3 & 0xFF;
+    buffer[12] = VDP_Reg.Set4 & 0xFF;
+    buffer[13] = VDP_Reg.H_Scr_Adr & 0xFF;
+    buffer[14] = VDP_Reg.Reg14 & 0xFF;
+    buffer[15] = VDP_Reg.Auto_Inc & 0xFF;
+    buffer[16] = VDP_Reg.Scr_Size & 0xFF;
+    buffer[17] = VDP_Reg.Win_H_Pos & 0xFF;
+    buffer[18] = VDP_Reg.Win_V_Pos & 0xFF;
+    buffer[19] = VDP_Reg.DMA_Length_L & 0xFF;
+    buffer[20] = VDP_Reg.DMA_Length_H & 0xFF;
+    buffer[21] = VDP_Reg.DMA_Src_Adr_L & 0xFF;
+    buffer[22] = VDP_Reg.DMA_Src_Adr_M & 0xFF;
+    buffer[23] = VDP_Reg.DMA_Src_Adr_H & 0xFF;
+}
+
+// Collect current CRAM into buffer (little-endian shorts)
+static void Collect_Current_CRAM(unsigned char* buffer)
+{
+    for (int i = 0; i < 64; i++)
+    {
+        unsigned short color = CRam[i];
+        buffer[i * 2 + 0] = (color >> 0) & 0xFF;
+        buffer[i * 2 + 1] = (color >> 8) & 0xFF;
+    }
+}
+
+// Compare full genstate file with current emulator state
+// Writes all diffs to CSV file with section information
+// Returns total number of differing bytes across all sections
+int Compare_Full_State_And_Save_Diff(const char* refStatePath, const char* directory, const char* basename)
+{
+    FILE* refFile = fopen(refStatePath, "rb");
+    if (!refFile) return 0;
+
+    // Get file size
+    fseek(refFile, 0, SEEK_END);
+    long fileSize = ftell(refFile);
+    fseek(refFile, 0, SEEK_SET);
+
+    // Read entire file
+    unsigned char* fileData = new unsigned char[fileSize];
+    if (fread(fileData, 1, fileSize, refFile) != (size_t)fileSize)
+    {
+        delete[] fileData;
+        fclose(refFile);
+        return 0;
+    }
+    fclose(refFile);
+
+    // Open diff output file
+    char diffFilename[1280];
+    sprintf(diffFilename, "%s\\%s_memdiff.csv", directory, basename);
+    FILE* diffFile = fopen(diffFilename, "w");
+    if (!diffFile)
+    {
+        delete[] fileData;
+        return 0;
+    }
+
+    // Write CSV header
+    fprintf(diffFile, "section,address,expected,actual,diff\n");
+
+    int totalDiffs = 0;
+
+    // Parse section table (starts at offset 64, after header)
+    unsigned char* sectionTable = fileData + 64;
+    int sectionIndex = 0;
+
+    while (true)
+    {
+        unsigned char* entry = sectionTable + sectionIndex * 16;
+        unsigned int section_id = Read_LE_U32(entry);
+        unsigned int offset = Read_LE_U32(entry + 4);
+        unsigned int size = Read_LE_U32(entry + 8);
+
+        // End marker (all zeros)
+        if (section_id == 0 && offset == 0 && size == 0) break;
+
+        // Get reference data pointer
+        unsigned char* refData = fileData + offset;
+        const char* sectionName = GetSectionName(section_id);
+
+        // Get current data based on section type
+        unsigned char* currentData = NULL;
+        unsigned char tempBuffer[256]; // For registers
+        static unsigned char ym2612Buffer[0x14d0]; // YM2612 state buffer
+        static unsigned char psgBuffer[sizeof(struct _psg)]; // PSG state buffer
+
+        switch (section_id)
+        {
+            case SECTION_M68K_RAM:
+                currentData = Ram_68k;
+                break;
+
+            case SECTION_M68K_REGS:
+                Collect_Current_M68K_Regs(tempBuffer);
+                currentData = tempBuffer;
+                break;
+
+            case SECTION_VDP_VRAM:
+                currentData = VRam;
+                break;
+
+            case SECTION_VDP_CRAM:
+                Collect_Current_CRAM(tempBuffer);
+                currentData = tempBuffer;
+                break;
+
+            case SECTION_VDP_VSRAM:
+                currentData = VSRam;
+                break;
+
+            case SECTION_VDP_REGS:
+                Collect_Current_VDP_Regs(tempBuffer);
+                currentData = tempBuffer;
+                break;
+
+            case SECTION_Z80_RAM:
+                currentData = Ram_Z80;
+                break;
+
+            case SECTION_YM2612:
+                YM2612_Save_Full(ym2612Buffer);
+                currentData = ym2612Buffer;
+                break;
+
+            case SECTION_PSG:
+                memcpy(psgBuffer, &PSG, sizeof(struct _psg));
+                currentData = psgBuffer;
+                break;
+
+            case SECTION_SRAM:
+                currentData = SRAM;
+                break;
+
+            // Skip Z80 registers for now (complex structure)
+            default:
+                currentData = NULL;
+                break;
+        }
+
+        // Compare and write diffs
+        if (currentData)
+        {
+            totalDiffs += Compare_Section_And_Write(diffFile, sectionName, refData, currentData, size);
+        }
+
+        sectionIndex++;
+        if (sectionIndex > 20) break; // Safety limit
+    }
+
+    fclose(diffFile);
+    delete[] fileData;
+
+    // Delete empty diff file
+    if (totalDiffs == 0)
+    {
+        remove(diffFilename);
+    }
+
+    return totalDiffs;
+}
+
 void Automation_OnFrame(int frameCount, void* screen, int mode, int Hmode, int Vmode)
 {
     // Process state dumps (independent of screenshot automation)
@@ -324,100 +605,68 @@ void Automation_OnFrame(int frameCount, void* screen, int mode, int Hmode, int V
     }
     else
     {
-        // COMPARE MODE: compare screenshots OR state dumps
-        if (CompareStateDumpsMode)
+        // COMPARE MODE: compare BOTH screenshots AND memory
+        // Two independent counters: DiffCount for screenshots, MemoryDiffCount for memory
+        // Terminate when EITHER counter reaches its threshold
+
+        bool screenshotDiff = false;
+        bool memoryDiff = false;
+
+        // 1. SCREENSHOT COMPARISON
+        char refPath[1024];
+        sprintf(refPath, "%s\\%06d.png", ReferenceDir, frameCount);
+
+        if (!Compare_With_Reference(screen, mode, Hmode, Vmode, refPath))
         {
-            // STATE DUMP COMPARISON MODE
-            // Simple approach: Load reference state dump and compare key sections
-            char refStatePath[1024];
-            sprintf(refStatePath, "%s\\%06d.genstate", ReferenceDir, frameCount);
+            screenshotDiff = true;
 
-            // Check if reference dump exists
-            FILE* refFile = fopen(refStatePath, "rb");
-            if (!refFile)
+            // Save current screenshot
+            Save_Shot_To_File(screen, mode, Hmode, Vmode, filename);
+
+            // Save diff visualization (reference with diff pixels highlighted)
+            char diffFilename[1024];
+            sprintf(diffFilename, "%s\\%06d_diff.png", ScreenshotDir, frameCount);
+            int X = Hmode ? 320 : 256;
+            int Y = Vmode ? 240 : 224;
+            Save_Diff_Image(X, Y, diffFilename);
+
+            DiffCount++;
+        }
+
+        // 2. FULL STATE COMPARISON (all sections: RAM, VRAM, CRAM, registers, etc.)
+        char refStatePath[1024];
+        sprintf(refStatePath, "%s\\%06d.genstate", ReferenceDir, frameCount);
+
+        // Compare full state and save diff CSV (section, address, expected, actual)
+        int stateDiffs = Compare_Full_State_And_Save_Diff(refStatePath, ScreenshotDir, basename);
+
+        if (stateDiffs > 0)
+        {
+            memoryDiff = true;
+            MemoryDiffCount++;
+
+            // Save current state dump for full state analysis
+            StateDump_DumpStateToFile(ScreenshotDir, basename);
+
+            // Also save screenshot for visual reference (if not already saved by screenshot diff)
+            if (!screenshotDiff)
             {
-                // No reference dump - skip this frame
-                return;
-            }
-
-            // Simple memory comparison: just compare current RAM with reference RAM
-            // Read reference RAM section (skip header and section table - RAM is at known offset)
-            // Header: 64 bytes
-            // Section table: ~112 bytes (7 sections × 16 bytes)
-            // First section is RAM at offset ~176
-            fseek(refFile, 176, SEEK_SET);
-
-            unsigned char* refRam = new unsigned char[65536];
-            size_t bytesRead = fread(refRam, 1, 65536, refFile);
-            fclose(refFile);
-
-            if (bytesRead != 65536)
-            {
-                delete[] refRam;
-                return;
-            }
-
-            // Get current RAM (Ram_68k is the 68000 RAM buffer)
-            extern unsigned char Ram_68k[64 * 1024];
-
-            // Compare RAM
-            bool hasDifference = false;
-            for (int i = 0; i < 65536; i++)
-            {
-                if (Ram_68k[i] != refRam[i])
-                {
-                    hasDifference = true;
-                    break;
-                }
-            }
-
-            delete[] refRam;
-
-            // If difference found, save current state and exit
-            if (hasDifference && DiffCount == 0)
-            {
-                // Save current state dump
-                StateDump_DumpStateToFile(ScreenshotDir, basename);
-
-                // Also save screenshot for visual reference
                 Save_Shot_To_File(screen, mode, Hmode, Vmode, filename);
-
-                DiffCount++;
-
-                // Exit immediately after first diff
-                PostMessage(HWnd, WM_CLOSE, 0, 0);
             }
         }
-        else
+
+        // If screenshot diff but no memory diff, still save state dump for analysis
+        if (screenshotDiff && !memoryDiff)
         {
-            // SCREENSHOT COMPARISON MODE (original behavior)
-            char refPath[1024];
-            sprintf(refPath, "%s\\%06d.png", ReferenceDir, frameCount);
+            StateDump_DumpStateToFile(ScreenshotDir, basename);
+        }
 
-            if (!Compare_With_Reference(screen, mode, Hmode, Vmode, refPath))
-            {
-                // Difference found! Save current screenshot
-                Save_Shot_To_File(screen, mode, Hmode, Vmode, filename);
-
-                // Also save diff visualization (reference with diff pixels highlighted)
-                char diffFilename[1024];
-                sprintf(diffFilename, "%s\\%06d_diff.png", ScreenshotDir, frameCount);
-                int X = Hmode ? 320 : 256;
-                int Y = Vmode ? 240 : 224;
-                Save_Diff_Image(X, Y, diffFilename);
-
-                // Also save state dump for this frame (for memory-level analysis)
-                StateDump_DumpStateToFile(ScreenshotDir, basename);
-
-                DiffCount++;
-
-                // Check max diffs limit
-                if (MaxDiffs > 0 && DiffCount >= MaxDiffs)
-                {
-                    // Exceeded diff limit - early exit
-                    PostMessage(HWnd, WM_CLOSE, 0, 0);
-                }
-            }
+        // Check if either threshold reached - terminate if so
+        if ((MaxDiffs > 0 && DiffCount >= MaxDiffs) ||
+            (MaxMemoryDiffs > 0 && MemoryDiffCount >= MaxMemoryDiffs))
+        {
+            // Exceeded diff limit - early exit
+            PostMessage(HWnd, WM_CLOSE, 0, 0);
         }
     }
 }
