@@ -197,6 +197,13 @@ int Update_Frame_Fast_Hook()
 
 	CallRegisteredLuaFunctions(LUACALL_AFTEREMULATION);
 	Update_RAM_Search();
+	
+	// Handle frame-based tracing even in fast mode
+	if (TraceStartFrame > 0)
+	{
+		Trace_OnFrame(FrameCount);
+	}
+	
 	return retval;
 }
 

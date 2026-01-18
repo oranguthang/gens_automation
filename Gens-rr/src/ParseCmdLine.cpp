@@ -34,7 +34,8 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	//List of valid commandline args
 	string argCmds[] = {"-cfg", "-rom", "-play", "-readwrite", "-loadstate", "-pause", "-lua",
 		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-max-memory-diffs", "-frameskip", "-turbo", "-nosound", "-window-x", "-window-y", "-diff-color",
-		"-dump-state-dir", "-dump-state-interval", "-dump-state-start", "-dump-state-end", "-save-state-dumps", "-compare-state-dumps", "-memory-after-visual", ""};	//Hint:  to add new commandlines, start by inserting them here.
+		"-dump-state-dir", "-dump-state-interval", "-dump-state-start", "-dump-state-end", "-save-state-dumps", "-compare-state-dumps", "-memory-after-visual",
+		"-trace-breakpoint", "-trace-frames", "-trace-log", "-trace-start", "-trace-end", ""};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad = "";		//Cfg filename
@@ -67,6 +68,13 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string StateDumpEndStr = "";		// Stop dumping after frame
 	string SaveStateDumpsStr = "";		// Save state dumps with screenshots
 	string CompareStateDumpsStr = "";	// Compare state dumps instead of screenshots
+
+	// Trace automation parameters
+	string TraceBreakpointStr = "";		// PC address to trigger trace (hex)
+	string TraceFramesStr = "";			// Number of frames to trace
+	string TraceLogStr = "";			// Path to trace log file
+	string TraceStartStr = "";			// Start frame for tracing
+	string TraceEndStr = "";			// End frame for tracing
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -184,7 +192,22 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 25: //-memory-after-visual
 			MemoryAfterVisualStr = newCommand;
 			break;
-		case 26: //  (a filename on its own, this must come BEFORE any other options on the commandline)
+		case 26: //-trace-breakpoint
+			TraceBreakpointStr = newCommand;
+			break;
+		case 27: //-trace-frames
+			TraceFramesStr = newCommand;
+			break;
+		case 28: //-trace-log
+			TraceLogStr = newCommand;
+			break;
+		case 29: //-trace-start
+			TraceStartStr = newCommand;
+			break;
+		case 30: //-trace-end
+			TraceEndStr = newCommand;
+			break;
+		case 31: //  (a filename on its own, this must come BEFORE any other options on the commandline)
 			if(newCommand[0] != '-')
 				FileToLoad = newCommand;
 			break;
@@ -386,6 +409,41 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		// Set a flag to enable state dump comparison mode
 		extern int CompareStateDumpsMode;
 		CompareStateDumpsMode = 1;
+	}
+
+	// Trace automation parameters
+	if (TraceBreakpointStr[0])
+	{
+		// Parse hex address (with or without 0x prefix)
+		const char* str = TraceBreakpointStr.c_str();
+		if (str[0] == '0' && (str[1] == 'x' || str[1] == 'X'))
+			str += 2;
+		TraceBreakpointPC = strtoul(str, NULL, 16);
+	}
+
+	if (TraceFramesStr[0])
+	{
+		TraceFramesAfterBreak = atoi(TraceFramesStr.c_str());
+		if (TraceFramesAfterBreak < 1) TraceFramesAfterBreak = 1;
+		if (TraceFramesAfterBreak > 1000) TraceFramesAfterBreak = 1000;
+	}
+
+	if (TraceLogStr[0])
+	{
+		strncpy(TraceLogPath, TraceLogStr.c_str(), sizeof(TraceLogPath) - 1);
+		TraceLogPath[sizeof(TraceLogPath) - 1] = '\0';
+	}
+
+	if (TraceStartStr[0])
+	{
+		TraceStartFrame = atoi(TraceStartStr.c_str());
+		if (TraceStartFrame < 0) TraceStartFrame = 0;
+	}
+
+	if (TraceEndStr[0])
+	{
+		TraceEndFrame = atoi(TraceEndStr.c_str());
+		if (TraceEndFrame < 0) TraceEndFrame = 0;
 	}
 
 

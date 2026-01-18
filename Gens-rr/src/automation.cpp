@@ -44,6 +44,18 @@ char ReferenceDir[1024] = "";
 unsigned char DiffColor[4] = {255, 0, 255, 255};  // BGRA: Pink (magenta) by default
 int CompareStateDumpsMode = 0;
 
+// Trace automation variables
+unsigned int TraceBreakpointPC = 0;    // PC address to trigger trace (0 = disabled)
+int TraceFramesAfterBreak = 20;        // Number of frames to trace after breakpoint
+int TraceFrameCounter = 0;             // Counter for frames since breakpoint
+char TraceLogPath[1024] = "";          // Path to trace log file
+int TraceActive = 0;                   // Trace is currently active (breakpoint hit)
+int TraceBreakpointHit = 0;            // Breakpoint was hit at least once
+int TraceStartFrame = 0;               // Start tracing at this frame (0 = disabled)
+int TraceEndFrame = 0;                 // Stop tracing at this frame (0 = disabled)
+int TraceCompleted = 0;                // Trace has finished (prevents restart)
+static FILE* TraceLogFile = NULL;      // Trace log file handle
+
 // Internal buffer for reference image (320x240 max, BGRA = 4 bytes per pixel)
 static unsigned char RefBuffer[320 * 240 * 4];
 static unsigned char CurrentBuffer[320 * 240 * 4];
@@ -60,6 +72,18 @@ void Automation_Init()
     SaveMemoryOnlyAfterVisual = 0;
     strcpy(ScreenshotDir, ".");
     ReferenceDir[0] = '\0';
+
+    // Initialize trace automation
+    TraceBreakpointPC = 0;
+    TraceFramesAfterBreak = 20;
+    TraceFrameCounter = 0;
+    TraceLogPath[0] = '\0';
+    TraceActive = 0;
+    TraceBreakpointHit = 0;
+    TraceStartFrame = 0;
+    TraceEndFrame = 0;
+    TraceCompleted = 0;
+    TraceLogFile = NULL;
 
     // Initialize state dump module
     StateDump_Init();
@@ -565,6 +589,14 @@ void Automation_OnFrame(int frameCount, void* screen, int mode, int Hmode, int V
     // Process state dumps (independent of screenshot automation)
     StateDump_OnFrame(frameCount);
 
+    // Process trace frame counting
+    // For frame-based mode: always call when TraceStartFrame is set
+    // For breakpoint mode: call when breakpoint was hit and trace is active
+    if (TraceStartFrame > 0 || (TraceBreakpointHit && TraceActive))
+    {
+        Trace_OnFrame(frameCount);
+    }
+
     // Skip if screenshot automation disabled
     if (ScreenshotInterval <= 0) return;
 
@@ -679,4 +711,153 @@ void Automation_OnFrame(int frameCount, void* screen, int mode, int Hmode, int V
             PostMessage(HWnd, WM_CLOSE, 0, 0);
         }
     }
+}
+
+// ============================================================================
+// TRACE AUTOMATION FUNCTIONS
+// ============================================================================
+
+void Trace_Init()
+{
+    if (TraceLogPath[0] && !TraceLogFile)
+    {
+        TraceLogFile = fopen(TraceLogPath, "w");
+        if (TraceLogFile)
+        {
+            fprintf(TraceLogFile, "# Trace log - breakpoint at PC=$%06X, frames=%d\n", 
+                    TraceBreakpointPC, TraceFramesAfterBreak);
+            fprintf(TraceLogFile, "# Format: FRAME,TYPE,PC,ADDR,VALUE,SIZE,DISASM,REGS\n");
+            fprintf(TraceLogFile, "#\n");
+        }
+    }
+}
+
+void Trace_Close()
+{
+    if (TraceLogFile)
+    {
+        fprintf(TraceLogFile, "\n# Trace complete\n");
+        fclose(TraceLogFile);
+        TraceLogFile = NULL;
+    }
+}
+
+// External frame counter from movie.cpp
+extern long unsigned int FrameCount;
+
+void Trace_CheckBreakpoint(unsigned int pc)
+{
+    // Skip if no breakpoint set
+    if (TraceBreakpointPC == 0) return;
+    
+    // Skip if already finished tracing
+    if (TraceBreakpointHit && !TraceActive) return;
+    
+    // Check if we hit the breakpoint
+    if (!TraceBreakpointHit && pc == TraceBreakpointPC)
+    {
+        TraceBreakpointHit = 1;
+        TraceActive = 1;
+        TraceFrameCounter = 0;
+        
+        // Initialize log file on first hit
+        Trace_Init();
+        
+        if (TraceLogFile)
+        {
+            fprintf(TraceLogFile, "\n# BREAKPOINT HIT at frame %d, PC=$%06X\n", FrameCount, pc);
+        }
+    }
+}
+
+void Trace_OnFrame(int frameCount)
+{
+    // Frame-based tracing mode (TraceStartFrame > 0)
+    if (TraceStartFrame > 0)
+    {
+        // Don't restart if already completed
+        if (TraceCompleted) return;
+        
+        // Check if we should start tracing
+        if (!TraceActive && frameCount >= TraceStartFrame)
+        {
+            TraceActive = 1;
+            TraceBreakpointHit = 1;
+            Trace_Init();
+            if (TraceLogFile)
+            {
+                fprintf(TraceLogFile, "# Trace started at frame %d\n", frameCount);
+                fprintf(TraceLogFile, "# Tracing frames %d to %d\n", TraceStartFrame, TraceEndFrame);
+            }
+        }
+        
+        // Check if we should stop tracing
+        // Also enforce max 100 frames limit to prevent huge trace files
+        int maxTraceFrames = 100;
+        int traceFrameCount = frameCount - TraceStartFrame;
+        if (TraceActive && (
+            (TraceEndFrame > 0 && frameCount > TraceEndFrame) ||
+            (traceFrameCount >= maxTraceFrames)))
+        {
+            TraceActive = 0;
+            TraceCompleted = 1;  // Mark as completed to prevent restart
+            if (TraceLogFile && traceFrameCount >= maxTraceFrames)
+            {
+                fprintf(TraceLogFile, "\n# WARNING: Trace stopped at %d frames limit\n", maxTraceFrames);
+            }
+            Trace_Close();
+            PostMessage(HWnd, WM_CLOSE, 0, 0);
+            return;
+        }
+        
+        // Log frame marker
+        if (TraceActive && TraceLogFile)
+        {
+            fprintf(TraceLogFile, "\n# === FRAME %d ===\n", frameCount);
+        }
+        return;
+    }
+    
+    // Breakpoint-based tracing mode (original behavior)
+    // Skip if tracing not active
+    if (!TraceActive) return;
+    
+    TraceFrameCounter++;
+    
+    if (TraceLogFile)
+    {
+        fprintf(TraceLogFile, "\n# === FRAME %d (trace frame %d/%d) ===\n", 
+                frameCount, TraceFrameCounter, TraceFramesAfterBreak);
+    }
+    
+    // Check if we've traced enough frames
+    if (TraceFrameCounter >= TraceFramesAfterBreak)
+    {
+        TraceActive = 0;
+        Trace_Close();
+        
+        // Exit emulator after trace complete
+        PostMessage(HWnd, WM_CLOSE, 0, 0);
+    }
+}
+
+void Trace_LogInstruction(unsigned int pc, const char* disasm,
+                          unsigned int* dregs, unsigned int* aregs, unsigned int sr)
+{
+    if (!TraceActive || !TraceLogFile) return;
+    
+    fprintf(TraceLogFile, "EXEC,%d,%06X,,,,%s,D0=%08X D1=%08X D2=%08X D3=%08X D4=%08X D5=%08X D6=%08X D7=%08X A0=%08X A1=%08X A2=%08X A3=%08X A4=%08X A5=%08X A6=%08X A7=%08X SR=%04X\n",
+            FrameCount, pc, disasm,
+            dregs[0], dregs[1], dregs[2], dregs[3], dregs[4], dregs[5], dregs[6], dregs[7],
+            aregs[0], aregs[1], aregs[2], aregs[3], aregs[4], aregs[5], aregs[6], aregs[7],
+            sr);
+}
+
+void Trace_LogMemAccess(const char* type, unsigned int pc, unsigned int addr,
+                        unsigned int value, int size)
+{
+    if (!TraceActive || !TraceLogFile) return;
+    
+    fprintf(TraceLogFile, "%s,%d,%06X,%06X,%0*X,%d,\n",
+            type, FrameCount, pc, addr, size * 2, value, size);
 }

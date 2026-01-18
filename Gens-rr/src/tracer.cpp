@@ -8,6 +8,7 @@
 #include "vdp_io.h"
 #include "luascript.h"
 #include "tracer.h"
+#include "automation.h"
 
 #define uint32 unsigned int
 
@@ -341,6 +342,19 @@ void GensTrace()
 	if( hook_trace )
 		GensTrace_hook();
 
+	// Automation trace - check for breakpoint
+	Trace_CheckBreakpoint(hook_pc);
+	
+	// Log instruction if trace is active (breakpoint or frame-based mode)
+	if (TraceActive)
+	{
+		char disasm[128];
+		Current_PC = hook_pc;
+		int OPC = M68K_RW(Current_PC);
+		sprintf(disasm, "%s", M68KDisasm2(Next_Word_T, Next_Long_T, hook_pc));
+		Trace_LogInstruction(hook_pc, disasm, main68k_context.dreg, main68k_context.areg, main68k_context.sr);
+	}
+
 	CallRegisteredLuaMemHook(hook_pc, 2, 0, LUAMEMHOOK_EXEC);
 }
 
@@ -400,6 +414,11 @@ void trace_read_byte()
 {
 	if( hook_trace && rd_mode )
 		trace_read_byte_internal();
+	
+	// Automation trace - log read
+	if (TraceActive)
+		Trace_LogMemAccess("READ", hook_pc, hook_address, hook_value, 1);
+	
 	CallRegisteredLuaMemHook(hook_address, 1, hook_value, LUAMEMHOOK_READ);
 }
 
@@ -457,6 +476,11 @@ void trace_read_word()
 {
 	if( hook_trace && rd_mode )
 		trace_read_word_internal();
+	
+	// Automation trace - log read
+	if (TraceActive)
+		Trace_LogMemAccess("READ", hook_pc, hook_address, hook_value, 2);
+	
 	CallRegisteredLuaMemHook(hook_address, 2, hook_value, LUAMEMHOOK_READ);
 }
 
@@ -515,6 +539,11 @@ void trace_read_dword()
 {
 	if( hook_trace && rd_mode )
 		trace_read_dword_internal();
+	
+	// Automation trace - log read
+	if (TraceActive)
+		Trace_LogMemAccess("READ", hook_pc, hook_address, hook_value, 4);
+	
 	CallRegisteredLuaMemHook(hook_address, 4, hook_value, LUAMEMHOOK_READ);
 }
 
@@ -580,6 +609,11 @@ void trace_write_byte()
 {
 	if( hook_trace && wr_mode )
 		trace_write_byte_internal();
+	
+	// Automation trace - log write
+	if (TraceActive)
+		Trace_LogMemAccess("WRITE", hook_pc, hook_address, hook_value, 1);
+	
 	CallRegisteredLuaMemHook(hook_address, 1, hook_value, LUAMEMHOOK_WRITE);
 }
 
@@ -638,6 +672,11 @@ void trace_write_word()
 {
 	if( hook_trace && wr_mode )
 		trace_write_word_internal();
+	
+	// Automation trace - log write
+	if (TraceActive)
+		Trace_LogMemAccess("WRITE", hook_pc, hook_address, hook_value, 2);
+	
 	CallRegisteredLuaMemHook(hook_address, 2, hook_value, LUAMEMHOOK_WRITE);
 }
 
@@ -696,6 +735,11 @@ void trace_write_dword()
 {
 	if( hook_trace && wr_mode )
 		trace_write_dword_internal();
+	
+	// Automation trace - log write
+	if (TraceActive)
+		Trace_LogMemAccess("WRITE", hook_pc, hook_address, hook_value, 4);
+	
 	CallRegisteredLuaMemHook(hook_address, 4, hook_value, LUAMEMHOOK_WRITE);
 }
 
