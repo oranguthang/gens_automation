@@ -84,6 +84,8 @@ void BinTrace_Close(void)
     trace_file = NULL;
     BinTraceActive = 0;
     header_written = 0;
+    // Clear path to prevent re-init after close (for delayed start mode)
+    BinTracePath[0] = '\0';
 }
 
 static void write_event(const void* data, size_t size)
