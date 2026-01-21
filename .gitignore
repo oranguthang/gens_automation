@@ -1,0 +1,34 @@
+# Build output
+Release/
+Debug/
+Output/
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.idb
+
+# Starscream generated files
+Starscream/Main68k/main68k.asm
+Starscream/Sub68k/sub68k.asm
+
+# Generated headers
+dependencies/gitrev.h
+
+# Visual Studio
+*.suo
+*.user
+*.ncb
+*.aps
+*.sdf
+*.opensdf
+*.cachefile
+ipch/
+.vs/
+*.vcxproj.filters
+
+# Logs
+*.log
+
+tmpclaude*
