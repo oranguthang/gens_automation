@@ -129,3 +129,16 @@ an interval of 100 produces a frame every 900.
 A `.genstate` carries the full 64 KiB of work RAM in section `0x01`, so a known
 field of the game under test is the strongest check that emulation is right and
 not merely that the binary starts.
+
+One thing to know before reading that section: it is written with
+`fwrite(Ram_68k, ...)`, straight out of the emulator's buffer, and Starscream
+holds 68000 work RAM as host-endian 16 bit words. **The two bytes of every word
+are swapped** relative to the 68000's big-endian view, so a reader has to
+exchange them -- `ram[offset ^ 1]` -- to see what the game sees.
+
+Getting this wrong is quiet rather than loud: an unswapped read returns the
+neighbouring byte, which looks like plausible game data. A word the game set to
+`$0044` reads back as `$4400`, and two adjacent byte fields come out swapped
+with each other. The cheapest way to confirm a reader is right is a field whose
+correct value is not a palindrome -- an ASCII marker the boot code writes, for
+instance, which only spells anything after the swap.
