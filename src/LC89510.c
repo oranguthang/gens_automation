@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <windows.h>
-#include "misc.h"
-#include "lc89510.h"
+#include "Misc.h"
+#include "LC89510.h"
 #include "cd_aspi.h"
-#include "cd_sys.h"
+#include "Cd_sys.h"
 #include "Star_68k.h"
-#include "mem_S68k.h"
+#include "Mem_S68k.h"
 #include "pcm.h"
 
 #define CDC_DMA_SPEED 256
@@ -227,16 +227,15 @@ unsigned short Read_CDC_Host_SUB(void)
 				}
 			}
 
-			__asm
+			/* Read one big-endian word from the CDC buffer and advance the
+			 * data address. Was MSVC inline assembly; the `rol ax, 8` is the
+			 * byte swap. */
 			{
-				mov esi, CDC.DAC.N
-				lea ebx, CDC.Buffer
-//				and esi, 0x3FFF
-				mov ax, [ebx + esi]
-				add esi, 2
-				rol ax, 8
-				mov CDC.DAC.N, esi
-				mov val, ax
+				unsigned int addr = CDC.DAC.N;
+				unsigned short raw = *(unsigned short *)(CDC.Buffer + addr);
+
+				CDC.DAC.N = addr + 2;
+				val = (unsigned short)((raw << 8) | (raw >> 8));
 			}
 
 #ifdef DEBUG_CD
@@ -280,16 +279,15 @@ unsigned short Read_CDC_Host_MAIN(void)
 				}
 			}
 
-			__asm
+			/* Read one big-endian word from the CDC buffer and advance the
+			 * data address. Was MSVC inline assembly; the `rol ax, 8` is the
+			 * byte swap. */
 			{
-				mov esi, CDC.DAC.N
-				lea ebx, CDC.Buffer
-//				and esi, 0x3FFF
-				mov ax, [ebx + esi]
-				add esi, 2
-				rol ax, 8
-				mov CDC.DAC.N, esi
-				mov val, ax
+				unsigned int addr = CDC.DAC.N;
+				unsigned short raw = *(unsigned short *)(CDC.Buffer + addr);
+
+				CDC.DAC.N = addr + 2;
+				val = (unsigned short)((raw << 8) | (raw >> 8));
 			}
 
 #ifdef DEBUG_CD

@@ -7,6 +7,10 @@
 #define TIMER_ID    1
 #define TIMER_RATE  30
 
+/* This header declares HWND, BOOL, WNDCLASS and friends, so it has to
+ * include what it uses rather than relying on every includer having
+ * pulled in windows.h first. */
+#include <windows.h>
 #include "stdio.h"
 //#include "hackdefs.h"
 

@@ -5,7 +5,7 @@
 #include "G_ddraw.h"
 #include "G_Input.h"
 #include "movie.h"
-#include "mem_M68K.h"
+#include "Mem_M68k.h"
 #include "luascript.h"
 #include "OpenArchive.h"
 

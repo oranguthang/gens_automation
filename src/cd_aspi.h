@@ -507,7 +507,7 @@ typedef union tagSRB32 {
 /*****************************************************/
 /*****************************************************/
 
-#include "cd_sys.h"
+#include "Cd_sys.h"
 
 #define STOP_DISC	0
 #define START_DISC	1

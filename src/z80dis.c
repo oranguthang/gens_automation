@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mem_z80.h"
+#include "Mem_Z80.h"
 
 char Mnemonics[256][16] =
 {

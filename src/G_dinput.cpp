@@ -6,6 +6,12 @@
 #include "io.h"
 #include "G_main.h"
 #include "movie.h"
+
+/* The DirectX SDK names scancode 0x90 DIK_PREVTRACK; MinGW's dinput.h
+ * only spells it DIK_CIRCUMFLEX. Same key, different SDK vocabulary. */
+#ifndef DIK_PREVTRACK
+#define DIK_PREVTRACK DIK_CIRCUMFLEX
+#endif
 #include "save.h" //Modif
 #include "hackdefs.h"
 #include "luascript.h"
@@ -2261,7 +2267,7 @@ void Check_Misc_Key()
 		                            TRANSFER_PRESSED_I(Controller_2B_##x,5,x)	\
 		                            TRANSFER_PRESSED_I(Controller_2C_##x,6,x)	\
 		                            TRANSFER_PRESSED_I(Controller_2D_##x,7,x)
-		#define TRANSFER_PRESSED_I(x,y,z)	{	const int now = !Check_Key_Pressed(Keys_Def[y].##z);	\
+		#define TRANSFER_PRESSED_I(x,y,z)	{	const int now = !Check_Key_Pressed(Keys_Def[y].z);	\
 				x##_Just = x##_Last && !now; x##_Last = now;	}
 		TRANSFER_PRESSED(Up);
 		TRANSFER_PRESSED(Down);

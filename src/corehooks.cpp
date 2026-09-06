@@ -1,6 +1,6 @@
 #include "luascript.h"
 #include "ggenie.h"
-#include "corehooks.h"
+#include "Corehooks.h"
 #include "tracer.h"
 
 extern "C" {
@@ -13,10 +13,10 @@ extern "C" {
 }
 
 #define defhook(name)\
-void hook_##name##()\
+void hook_##name()\
 {\
 	hook_pc &= 0xFFFFFF;\
-	trace_##name##();\
+	trace_##name();\
 }
 #define defhook_cd(name)\
 void hook_##name##_cd()\
@@ -31,9 +31,9 @@ void hook_##name##_cd()\
 	defhook_cd(write_##size)
 
 #define defvramhook(name,size)\
-void hook_##name##_vram_##size##()\
+void hook_##name##_vram_##size()\
 {\
-	trace_##name##_vram_##size##();\
+	trace_##name##_vram_##size();\
 }
 
 #define defvramhooks(size)\

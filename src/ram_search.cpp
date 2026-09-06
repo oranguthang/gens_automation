@@ -26,16 +26,16 @@
 
 #include "resource.h"
 #include "gens.h"
-#include "mem_m68k.h"
-#include "mem_s68k.h"
-#include "mem_sh2.h"
-#include "misc.h"
-#include "mem_z80.h"
+#include "Mem_M68k.h"
+#include "Mem_S68k.h"
+#include "Mem_SH2.h"
+#include "Misc.h"
+#include "Mem_Z80.h"
 #include "vdp_io.h"
 #include "save.h"
 #include "ram_search.h"
 #include "hexeditor.h"
-#include "g_main.h"
+#include "G_main.h"
 #include <assert.h>
 #include <commctrl.h>
 #include "G_dsound.h"
@@ -43,11 +43,13 @@
 #include "luascript.h"
 #include <list>
 #include <vector>
-#ifdef _WIN32
+/* intptr_t came from the Windows SDK on MSVC of this era and from the standard
+ * header everywhere else, MinGW included. */
+#ifdef _MSC_VER
    #include "BaseTsd.h"
    typedef INT_PTR intptr_t;
 #else
-   #include "stdint.h"
+   #include <stdint.h>
 #endif
 
 

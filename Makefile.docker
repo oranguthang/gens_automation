@@ -1,0 +1,49 @@
+# Docker build entrypoints.
+#
+# These work from a Windows, Linux or macOS host: everything happens inside the
+# container, so the host needs Docker and nothing else. Visual Studio remains a
+# supported way to build (see Makefile), not a requirement.
+#
+# Only a 32-bit Windows target exists, and that is not an oversight. Gens' CPU
+# cores are ~32k lines of 32-bit x86 assembly with no C fallback, and the memory
+# dispatch tables cast pointers to `unsigned`, so there is no 64-bit build to be
+# had without rewriting the emulator. A native macOS binary is therefore
+# impossible: macOS dropped 32-bit execution in 10.15. Running the emulator on a
+# Mac means running a Linux container, which needs the headless Linux target
+# that does not exist yet. See docs/docker-build.md.
+
+DOCKER      ?= docker
+PLATFORM    ?= linux/amd64
+IMAGE       ?= gens-cross
+OUTPUT_DIR  ?= Output
+DOCKERFILE  := docker/windows/i386/Dockerfile
+
+.PHONY: help win-i386 image shell clean-docker
+
+help:
+	@echo "Docker build targets:"
+	@echo "  make -f Makefile.docker win-i386   Cross-build Gens.exe into $(OUTPUT_DIR)/"
+	@echo "  make -f Makefile.docker image      Build the toolchain image only"
+	@echo "  make -f Makefile.docker shell      Interactive shell in the build image"
+	@echo "  make -f Makefile.docker clean-docker  Remove the built images"
+
+# The toolchain and its cross-built zlib and libpng. Slow once, then cached.
+image:
+	$(DOCKER) build --platform $(PLATFORM) -f $(DOCKERFILE) \
+		--target deps -t $(IMAGE):deps .
+
+# Build and copy the binary out. --output writes straight to the host, so no
+# container is created and nothing needs cleaning up afterwards.
+win-i386:
+	$(DOCKER) build --platform $(PLATFORM) -f $(DOCKERFILE) \
+		--target artifact --output type=local,dest=$(OUTPUT_DIR) .
+	@echo "[OK] $(OUTPUT_DIR)/Gens.exe"
+
+# For iterating on the port: the source is mounted, so edits on the host are
+# picked up without rebuilding the image.
+shell: image
+	$(DOCKER) run --rm -it --platform $(PLATFORM) \
+		-v "$(CURDIR)":/src -w /src $(IMAGE):deps bash
+
+clean-docker:
+	-$(DOCKER) image rm $(IMAGE):deps

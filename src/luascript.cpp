@@ -1,9 +1,9 @@
 #include "luascript.h"
 #include "gens.h"
 #include "save.h"
-#include "g_main.h"
+#include "G_main.h"
 #include "G_ddraw.h"
-#include "misc.h"
+#include "Misc.h"
 #include "guidraw.h"
 #include "movie.h"
 #include "vdp_io.h"
@@ -1690,7 +1690,7 @@ void printfToOutput(const char* fmt, ...)
 {
 	va_list list;
 	va_start(list, fmt);
-	int len = vscprintf(fmt, list);
+	int len = _vscprintf(fmt, list);  /* MSVC and MinGW both spell it with the underscore */
 	char* str = new char[len+1];
 	vsprintf(str, fmt, list);
 	va_end(list);
@@ -4824,8 +4824,10 @@ struct TieredRegion
 
 		bool Contains(unsigned int address, int size) const
 		{
-			std::vector<Island>::const_iterator iter = islands.begin();
-			std::vector<Island>::const_iterator end = islands.end();
+			/* Island depends on the template parameter, so these are dependent
+			 * types and need typename. MSVC did not require it. */
+			typename std::vector<Island>::const_iterator iter = islands.begin();
+			typename std::vector<Island>::const_iterator end = islands.end();
 			for(; iter != end; ++iter)
 				if(iter->Contains(address, size))
 					return true;
@@ -4848,7 +4850,10 @@ struct TieredRegion
 
 	TieredRegion()
 	{
-		Calculate(std::vector<unsigned int>());
+		/* Calculate sorts in place and so takes a non-const reference, which
+		 * cannot bind to a temporary outside MSVC. */
+		std::vector<unsigned int> empty;
+		Calculate(empty);
 	}
 
 	__forceinline int NotEmpty()

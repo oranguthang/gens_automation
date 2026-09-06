@@ -1,6 +1,6 @@
 #ifndef _HACKSCOMMON_H
 #define _HACKSCOMMON_H
-#include "mem_m68k.h"
+#include "Mem_M68k.h"
 #include "hackdefs.h"
 template <typename T>
 T CheatRead (unsigned int address)

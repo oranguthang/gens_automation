@@ -203,7 +203,9 @@ ArchiveFile::ArchiveFile(const char* filename)
 					item.size = var.uhVal.LowPart;
 
 					object->GetProperty(i, kpidPath, &var);
-					std::string& path = wstrToStr(var.bstrVal);
+					/* Was a non-const reference bound to a temporary, which MSVC
+					 * allowed as an extension. The value is only read. */
+					const std::string path = wstrToStr(var.bstrVal);
 					item.name = new char[path.size()+1];
 					strcpy(item.name, path.c_str());
 

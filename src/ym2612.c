@@ -2388,11 +2388,14 @@ void YM2612_Update(int **buf, int length)
 #endif
 
 }
-#ifdef _WIN32
+/* MSVC of this era had no stdint.h, so intptr_t came from the Windows SDK.
+ * Every other compiler, MinGW included, provides it in the standard header --
+ * and providing it twice is a redefinition. */
+#ifdef _MSC_VER
    #include "BaseTsd.h"
    typedef INT_PTR intptr_t;
 #else
-   #include "stdint.h"
+   #include <stdint.h>
 #endif
 
 int YM2612_Restore_Full(const unsigned char SAVE[sizeof(ym2612_)])

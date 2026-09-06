@@ -1,18 +1,26 @@
 #include <windows.h>
 #include "gens.h"
-#include "G_Main.h"
+#include "G_main.h"
 #include "G_ddraw.h"
 #include "guidraw.h"
-#include "rom.h"
+#include "Rom.h"
 #include "AVIWrite.h"
 #include "save.h"
 #include "movie.h"
 #include "scrshot.h"
-#include "mem_M68K.h"
+#include "Mem_M68k.h"
 #include <stdio.h>
-#include "g_dsound.h"
+#include "G_dsound.h"
 #include "drawutil.h"
+/* The vendored src/png.h is libpng 1.2.0, which the Visual Studio build pairs
+ * with dependencies/libs/libpng.lib. The MinGW build links the toolchain's
+ * libpng instead, so it must use that library's own headers: mixing 1.2
+ * headers with a 1.6 runtime is a struct-layout hazard, not just a warning. */
+#ifdef __GNUC__
+#include <png.h>
+#else
 #include "png.h"
+#endif
 #include <set>
 #include <assert.h>
 int AVIRecording=0;

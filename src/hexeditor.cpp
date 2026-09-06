@@ -1,8 +1,8 @@
 #include "resource.h"
 #include "gens.h"
-#include "mem_m68k.h"
-#include "mem_s68k.h"
-#include "mem_sh2.h"
+#include "Mem_M68k.h"
+#include "Mem_S68k.h"
+#include "Mem_SH2.h"
 #include "G_main.h"
 #include "G_ddraw.h"
 #include "G_dsound.h"
@@ -15,11 +15,13 @@
 #include <list>
 #include <vector>
 
-#ifdef _WIN32
+/* Same story as ym2612.c: intptr_t came from the Windows SDK on MSVC of this
+ * era, and from the standard header everywhere else. */
+#ifdef _MSC_VER
    #include "BaseTsd.h"
    typedef INT_PTR intptr_t;
 #else
-   #include "stdint.h"
+   #include <stdint.h>
 #endif
 
 HWND HexEditorHWnd;

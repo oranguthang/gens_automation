@@ -1,0 +1,7 @@
+.git
+Output
+build
+*.exe
+*.obj
+*.pdb
+*.ilk

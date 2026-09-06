@@ -3,35 +3,35 @@
 #include <string.h>
 #include <io.h>
 #include "save.h"
-#include "cpu_68k.h"
-#include "cpu_sh2.h"
-#include "sh2.h"
+#include "Cpu_68k.h"
+#include "Cpu_SH2.h"
+#include "SH2.h"
 #include "z80.h"
 #include "cd_aspi.h"
 #include "gens.h"
 #include "G_main.h"
 #include "G_ddraw.h"
 #include "G_dsound.h"
-#include "G_input.h"
+#include "G_Input.h"
 #include "gfx_cd.h"
 #include "vdp_io.h"
 #include "vdp_rend.h"
 #include "vdp_32X.h"
-#include "rom.h"
-#include "mem_M68K.h"
-#include "mem_S68K.h"
-#include "mem_SH2.h"
-#include "mem_Z80.h"
+#include "Rom.h"
+#include "Mem_M68k.h"
+#include "Mem_S68k.h"
+#include "Mem_SH2.h"
+#include "Mem_Z80.h"
 #include "ym2612.h"
 #include "psg.h"
 #include "pcm.h"
 #include "pwm.h"
-#include "lc89510.h"
+#include "LC89510.h"
 #include "scrshot.h"
 #include "ggenie.h"
 #include "io.h"
-#include "misc.h"
-#include "cd_sys.h"
+#include "Misc.h"
+#include "Cd_sys.h"
 #include "movie.h"
 #include "ram_search.h"
 #include "ramwatch.h"
@@ -1380,10 +1380,10 @@ void Export_Genesis(unsigned char * Data)
 	  Data[i + 0x12478 + 1] = VRam[i + 0];
 	  Data[i + 0x12478 + 0] = VRam[i + 1];
 	}
-	Data[0x22478]=unsigned char (FrameCount&0xFF);   //Modif
-	Data[0x22479]=unsigned char ((FrameCount>>8)&0xFF);   //Modif
-	Data[0x2247A]=unsigned char ((FrameCount>>16)&0xFF);   //Modif
-	Data[0x2247B]=unsigned char ((FrameCount>>24)&0xFF);   //Modif
+	Data[0x22478]=(unsigned char)(FrameCount&0xFF);   //Modif
+	Data[0x22479]=(unsigned char)((FrameCount>>8)&0xFF);   //Modif
+	Data[0x2247A]=(unsigned char)((FrameCount>>16)&0xFF);   //Modif
+	Data[0x2247B]=(unsigned char)((FrameCount>>24)&0xFF);   //Modif
 
 	// everything after this should use this offset variable for ease of extensibility
 	// Modif U. - got rid of about 12 KB of 00 bytes.

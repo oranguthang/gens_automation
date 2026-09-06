@@ -13,7 +13,15 @@
 #include "G_main.h"
 #include "G_ddraw.h"
 #include "scrshot.h"
+/* The vendored src/png.h is libpng 1.2.0, which the Visual Studio build pairs
+ * with dependencies/libs/libpng.lib. The MinGW build links the toolchain's
+ * libpng instead, so it must use that library's own headers: mixing 1.2
+ * headers with a 1.6 runtime is a struct-layout hazard, not just a warning. */
+#ifdef __GNUC__
+#include <png.h>
+#else
 #include "png.h"
+#endif
 #include "drawutil.h"
 #include "movie.h"
 #include "vdp_io.h"

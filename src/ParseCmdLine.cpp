@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "G_main.h"
-#include "rom.h"
+#include "Rom.h"
 #include "movie.h"
 #include "save.h"
 #include "G_ddraw.h"
@@ -94,7 +94,7 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 
 	//--------------------------------------------------------------------------------------------
 	//Commandline parsing loop
-	for (int x = 0; x < (sizeof argCmds / sizeof string); x++)
+	for (int x = 0; x < (sizeof argCmds / sizeof(string)); x++)
 	{
 		if (argumentList.find(argCmds[x]) != string::npos)
 		{

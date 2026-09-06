@@ -3,11 +3,11 @@
 #include "G_main.h"
 #include "G_ddraw.h"
 #include "G_dsound.h"
-#include "G_input.h"
-#include "rom.h"
-#include "mem_M68K.h"
-#include "mem_S68K.h"
-#include "mem_SH2.h"
+#include "G_Input.h"
+#include "Rom.h"
+#include "Mem_M68k.h"
+#include "Mem_S68k.h"
+#include "Mem_SH2.h"
 #include "ym2612.h"
 #include "psg.h"
 #include "Cpu_68k.h"
@@ -18,16 +18,16 @@
 #include "vdp_rend.h"
 #include "vdp_32X.h"
 #include "io.h"
-#include "misc.h"
+#include "Misc.h"
 #include "save.h"
 #include "ggenie.h"
-#include "cd_sys.h"
+#include "Cd_sys.h"
 #include "LC89510.h"
 #include "gfx_cd.h"
 #include "wave.h"
 #include "pcm.h"
 #include "pwm.h"
-#include "cd_sys.h"
+#include "Cd_sys.h"
 #include "cd_file.h"
 #include "movie.h"
 #include "scrshot.h"
@@ -488,9 +488,9 @@ void Recalculate_Palettes(void)
 			g = (Palette32[i] >> 8) & 0xFF;
 			b = Palette32[i] & 0xFF;
 
-			r = (r * unsigned int (0.30 * 65536.0)) >> 16;
-			g = (g * unsigned int (0.59 * 65536.0)) >> 16;
-			b = (b * unsigned int (0.11 * 65536.0)) >> 16;
+			r = (r * (unsigned int)(0.30 * 65536.0)) >> 16;
+			g = (g * (unsigned int)(0.59 * 65536.0)) >> 16;
+			b = (b * (unsigned int)(0.11 * 65536.0)) >> 16;
 
 			r = g = b = r + g + b;
 			
@@ -512,9 +512,9 @@ void Recalculate_Palettes(void)
 
 			b = ((Palette[i] >> 0) & 0x1F) << 1;
 
-			r = (r * unsigned int (0.30 * 65536.0)) >> 16;
-			g = (g * unsigned int (0.59 * 65536.0)) >> 16;
-			b = (b * unsigned int (0.11 * 65536.0)) >> 16;
+			r = (r * (unsigned int)(0.30 * 65536.0)) >> 16;
+			g = (g * (unsigned int)(0.59 * 65536.0)) >> 16;
+			b = (b * (unsigned int)(0.11 * 65536.0)) >> 16;
 
 			r = g = b = r + g + b;
 
@@ -540,9 +540,9 @@ void Recalculate_Palettes(void)
 			g = (_32X_Palette_32B[i] >> 8) & 0xFF;
 			b = _32X_Palette_32B[i] & 0xFF;
 
-			r = (r * unsigned int (0.30 * 65536.0)) >> 16;
-			g = (g * unsigned int (0.59 * 65536.0)) >> 16;
-			b = (b * unsigned int (0.11 * 65536.0)) >> 16;
+			r = (r * (unsigned int)(0.30 * 65536.0)) >> 16;
+			g = (g * (unsigned int)(0.59 * 65536.0)) >> 16;
+			b = (b * (unsigned int)(0.11 * 65536.0)) >> 16;
 
 			r = g = b = r + g + b;
 			
@@ -564,9 +564,9 @@ void Recalculate_Palettes(void)
 
 			b = ((_32X_Palette_16B[i] >> 0) & 0x1F) << 1;
 
-			r = (r * unsigned int (0.30 * 65536.0)) >> 16;
-			g = (g * unsigned int (0.59 * 65536.0)) >> 16;
-			b = (b * unsigned int (0.11 * 65536.0)) >> 16;
+			r = (r * (unsigned int)(0.30 * 65536.0)) >> 16;
+			g = (g * (unsigned int)(0.59 * 65536.0)) >> 16;
+			b = (b * (unsigned int)(0.11 * 65536.0)) >> 16;
 
 			r = g = b = r + g + b;
 

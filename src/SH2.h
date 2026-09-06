@@ -45,17 +45,22 @@ extern "C" {
 #endif
 
 
-#ifndef __GNUC__
+/* MinGW supports __fastcall with MSVC semantics and produces the same @name@N
+ * decoration, which is exactly what the DECLF macro in nasmhead.inc emits. So
+ * a Windows target keeps __fastcall whichever compiler builds it; the regparm
+ * path below is for a non-Windows GCC, where the registers differ and the
+ * assembly cores would have to change with it. */
+#if !defined(__GNUC__) || defined(_WIN32)
 
 #define FASTCALL				__fastcall
 #define DECL_FASTCALL(type, name)	type FASTCALL name
 
-#else //__GNUC__
+#else //__GNUC__ and not Windows
 
 #define FASTCALL
 #define DECL_FASTCALL(type, name)	type name __attribute__ ((regparm(2)))
 
-#endif //!__GNUC__
+#endif
 
 
 /****************************/

@@ -2,7 +2,7 @@
 #include <windows.h>
 #include "z80.h"
 #include "Cpu_Z80.h"
-#include "Mem_M68K.h"
+#include "Mem_M68k.h"
 #include "Mem_Z80.h"
 
 
@@ -72,7 +72,7 @@ int Z80_Init(void)
 
 
 
-#include "cd_sys.h"
+#include "Cd_sys.h"
 
 
 void Write_To_Bank(int val)

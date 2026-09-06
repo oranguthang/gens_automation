@@ -5,7 +5,12 @@
 extern "C" {
 #endif
 
+/* Guarded like z80.h: several headers define this and whichever is
+ * included first must win, or the declaration and the definition of the
+ * same function disagree about the calling convention. */
+#ifndef FASTCALL
 #define FASTCALL __fastcall
+#endif
 
 extern unsigned short PWM_FIFO_R[8];
 extern unsigned short PWM_FIFO_L[8];

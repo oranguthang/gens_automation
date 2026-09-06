@@ -158,6 +158,15 @@ LUA_API lua_State *lua_newthread (lua_State *L) {
 
 
 
+#ifndef _MSC_VER
+/* See lapi.h: MSVC keeps this inlined in the header, everyone else defines it
+   here, which is where upstream Lua has it. */
+LUA_API int lua_gettop (lua_State *L) {
+  return cast_int(L->top - L->base);
+}
+#endif
+
+
 LUA_API void lua_settop (lua_State *L, int idx) {
   lua_lock(L);
   if (idx >= 0) {

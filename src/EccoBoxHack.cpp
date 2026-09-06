@@ -3,8 +3,8 @@
 #include "guidraw.h"
 #include "EccoBoxHack.h"
 #include "HacksCommon.h"
-#include "misc.h"
-#include "g_main.h"
+#include "Misc.h"
+#include "G_main.h"
 #include "io.h"
 #include "movie.h"
 #ifdef ECCOBOXHACK

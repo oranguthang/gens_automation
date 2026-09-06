@@ -97,13 +97,19 @@ WRes Semaphore_Close(CSemaphore *p) { return MyCloseHandle(&p->handle); }
 
 WRes CriticalSection_Init(CCriticalSection *p)
 {
-  /* InitializeCriticalSection can raise only STATUS_NO_MEMORY exception */
+  /* InitializeCriticalSection can raise only STATUS_NO_MEMORY exception, which
+     MSVC catches with structured exception handling. GCC has no equivalent, so
+     it uses the AndSpinCount variant instead: same effect, but it reports
+     failure by return value rather than by raising. */
+#ifdef _MSC_VER
   __try
   {
     InitializeCriticalSection(p);
-    /* InitializeCriticalSectionAndSpinCount(p, 0); */
   }
   __except (EXCEPTION_EXECUTE_HANDLER) { return 1; }
   return 0;
+#else
+  return InitializeCriticalSectionAndSpinCount(p, 0) ? 0 : 1;
+#endif
 }
 

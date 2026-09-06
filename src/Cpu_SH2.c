@@ -1,7 +1,7 @@
 #include "SH2.h"
 #include "Cpu_SH2.h"
 #include "Mem_SH2.h"
-#include "Mem_M68K.h"
+#include "Mem_M68k.h"
 #include "vdp_32X.h"
 #include <memory.h>
 

@@ -255,7 +255,10 @@ MMIOINFO *pmmioinfoOut // (IN)
 			} 
 		} 
 
-	*((BYTE*)pmmioinfoOut->pchNext)++ = *((BYTE*)pbSrc+cT); 
+	/* MSVC allowed a cast to be used as an lvalue; standard C does not, so the
+	 * store and the advance are separate statements. */
+	*(BYTE *)pmmioinfoOut->pchNext = *((BYTE *)pbSrc + cT);
+	pmmioinfoOut->pchNext++; 
 	(*cbActualWrite)++; 
 	} 
 

@@ -9,7 +9,7 @@
 #include "gens.h"
 #include "vdp_io.h"
 #include "vdp_rend.h"
-#include "misc.h"
+#include "Misc.h"
 #include "blit.h"
 #include "scrshot.h"
 #include "net.h"
@@ -20,7 +20,7 @@
 #include "movie.h"
 #include "moviegfx.h"
 #include "io.h"
-#include "hackscommon.h"
+#include "HacksCommon.h"
 #include "drawutil.h"
 #include "luascript.h"
 #include "automation.h"
@@ -749,7 +749,7 @@ void DrawInformationOnTheScreen()
 		}
 	}
 #ifdef SONICSPEEDHACK 
-#include "sonichacksuite.h"
+#include "SonicHackSuite.h"
 	// SONIC THE HEDGEHOG SPEEDOMETER HACK
 	SonicSpeedTicker();
 #endif

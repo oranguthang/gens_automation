@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <windows.h>
 #include "G_main.h"
-#include "rom.h"
-#include "star_68k.h"
+#include "Rom.h"
+#include "Star_68k.h"
 #include "LC89510.h"
 #include "cd_aspi.h"
-#include "mem_S68K.h"
+#include "Mem_S68k.h"
 #include "movie.h"
 
 HINSTANCE hDLL = NULL;               // Handle to DLL

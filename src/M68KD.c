@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include "mem_M68K.h"
-#include "mem_S68K.h"
+#include "Mem_M68k.h"
+#include "Mem_S68k.h"
 
 
 static char Dbg_Str[64];

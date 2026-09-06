@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <windows.h>
-#include "cd_sys.h"
+#include "Cd_sys.h"
 #include "cd_file.h"
-#include "lc89510.h"
+#include "LC89510.h"
 #include "cdda_mp3.h"
-#include "star_68k.h"
-#include "rom.h"
-#include "mem_S68K.h"
+#include "Star_68k.h"
+#include "Rom.h"
+#include "Mem_S68k.h"
 #include <string.h>
 
 struct _file_track Tracks[100];

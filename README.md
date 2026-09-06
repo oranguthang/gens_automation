@@ -4,6 +4,25 @@ Fork of Gens-rerecording emulator with screenshot automation, memory state dumps
 
 ## Build
 
+Two paths. Visual Studio is supported, not required.
+
+### Docker (Windows, Linux or macOS host)
+
+**Requirements:** Docker.
+
+```bash
+make -f Makefile.docker win-i386
+```
+
+Output: `Output/Gens.exe`. Everything happens in the container, so the host
+needs no compiler. See [docs/docker-build.md](docs/docker-build.md).
+
+The only target is 32-bit Windows, and that is a property of the emulator
+rather than of the build system: the CPU cores are 32-bit x86 assembly with no
+C fallback, so there is no 64-bit build and therefore no native macOS one.
+
+### Visual Studio
+
 **Requirements:** Visual Studio 2022, Platform Toolset v143
 
 ```cmd

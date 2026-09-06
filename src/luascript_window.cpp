@@ -1,7 +1,7 @@
 #include "resource.h"
 #include "gens.h"
 #include "save.h"
-#include "g_main.h"
+#include "G_main.h"
 #include "luascript.h"
 #include <assert.h>
 #include <process.h>

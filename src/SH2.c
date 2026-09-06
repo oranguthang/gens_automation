@@ -15,7 +15,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "sh2.h"
+#include "SH2.h"
 
 #if SH2_DEBUG > 0
 FILE *SH2_Debug = NULL;

@@ -1,0 +1,171 @@
+# Cross-build Gens for 32-bit Windows with MinGW-w64.
+#
+# This is the build that runs inside docker/windows/i386. It needs no Visual
+# Studio and no Windows host: a cross-compiler, NASM, and a host compiler to
+# run the two 68000 core generators.
+#
+# The target is i686 and cannot be anything else. The CPU cores are 32-bit x86
+# assembly and the memory dispatch tables cast pointers to `unsigned`.
+
+CROSS   ?= i686-w64-mingw32
+SYSROOT ?= /opt/cross
+
+CC      := $(CROSS)-gcc
+CXX     := $(CROSS)-g++
+WINDRES := $(CROSS)-windres
+NASM    ?= nasm
+
+# The Starscream generators are ordinary ANSI C programs that emit assembly.
+# They run on the build host, so they use the host compiler, not the cross one.
+HOSTCC  ?= cc
+
+BUILD   := build/mingw-i386
+OBJ     := $(BUILD)/obj
+TARGET  := $(BUILD)/Gens.exe
+
+# Mirrors the Visual Studio project: WIN32/_WINDOWS select the platform,
+# EXTRACT_ONLY and _NO_CRYPTO trim the bundled 7-Zip interface down to what
+# Gens actually calls.
+DEFINES := -DWIN32 -DNDEBUG -D_WINDOWS -D_CRT_SECURE_NO_DEPRECATE \
+           -DEXTRACT_ONLY -D_NO_CRYPTO
+
+# -I. is the project directory, which Visual Studio adds implicitly; a few
+# sources include headers by a path relative to the repository root.
+#
+# src/ is deliberately NOT here. The sources live in it, so their own quoted
+# includes resolve anyway, and putting it on the search path makes
+# `#include <io.h>` in save.cpp pick up Gens' own controller header instead of
+# the C runtime's.
+INCLUDES := -I. -I7z/CPP -Idependencies -Idependencies/lua/src \
+            -I$(SYSROOT)/include
+
+# -fpermissive and the disabled warnings are not laziness: this is 2004-era
+# MSVC C++ and GCC is stricter about several constructs that were legal then.
+# The narrower flags are preferred over -w so that new mistakes still surface.
+# mingw_compat.h is force-included so it precedes every other header.
+# -MMD -MP records which headers each object depends on, so editing a header
+# rebuilds what it affects instead of leaving stale objects behind.
+COMMON_FLAGS := -m32 -O2 -pipe -fno-strict-aliasing $(DEFINES) $(INCLUDES) \
+                -include src/mingw_compat.h -MMD -MP \
+                -Wno-write-strings -Wno-narrowing -Wno-multichar
+
+# -fcommon restores the pre-GCC-10 default. pwm.c and pwm.asm both define
+# PWM_Cycle_Tmp and three siblings; as tentative definitions those used to
+# become COMMON symbols and merge with the assembly ones, which is what this
+# code was written against. Under -fno-common they are duplicate definitions.
+CFLAGS   := $(COMMON_FLAGS) -std=gnu99 -fcommon
+# gnu++11 rather than the era's C++03: luascript.cpp already uses nullptr,
+# and nothing in the tree depends on pre-C++11 semantics.
+CXXFLAGS := $(COMMON_FLAGS) -fpermissive -std=gnu++11
+
+# -mwindows selects the GUI subsystem, as the project file does. The DirectX
+# import libraries come from MinGW-w64 rather than the bundled MSVC ones.
+LDFLAGS := -m32 -mwindows -static -static-libgcc -static-libstdc++ \
+           -L$(SYSROOT)/lib
+LDLIBS  := -lddraw -ldsound -ldinput -ldxguid \
+           -lgdi32 -luser32 -ladvapi32 -lcomdlg32 -lshell32 -lole32 \
+           -loleaut32 -lwinmm -lwsock32 -lvfw32 -lcomctl32 -lhtmlhelp \
+           -lpng -lz
+
+# ---------------------------------------------------------------------------
+# Sources
+# ---------------------------------------------------------------------------
+
+# src/pngstuff.cpp is not in Gens.vcxproj either: it is a seven-line remnant
+# that has never been part of the build. Excluding it keeps both build paths
+# compiling exactly the same set of sources.
+DEAD_SRC := src/pngstuff.cpp
+
+SRC_C   := $(wildcard src/*.c)
+SRC_CXX := $(filter-out $(DEAD_SRC),$(wildcard src/*.cpp))
+
+# Gens links a static 7-Zip library through a Visual Studio project reference,
+# which is why no 7z library appears in its linker inputs. The same 150 files
+# are compiled here into the same archive.
+include 7z/sources.mk
+
+LUA_C   := $(wildcard dependencies/lua/src/*.c)
+MP3_C   := dependencies/mp3_dec/common.c dependencies/mp3_dec/dct64_i386.c \
+           dependencies/mp3_dec/decode_i386.c dependencies/mp3_dec/interface.c \
+           dependencies/mp3_dec/layer3.c dependencies/mp3_dec/tabinit.c
+
+# The two 68000 cores are generated, not committed.
+GEN_ASM := Starscream/Main68k/main68k.asm Starscream/Sub68k/sub68k.asm
+SRC_ASM := $(wildcard src/*.asm)
+ALL_ASM := $(SRC_ASM) $(GEN_ASM)
+
+SEVENZIP_OBJ := $(patsubst %.c,$(OBJ)/%.o,$(filter %.c,$(SEVENZIP_SRC))) \
+                $(patsubst %.cpp,$(OBJ)/%.o,$(filter %.cpp,$(SEVENZIP_SRC)))
+SEVENZIP_LIB := $(BUILD)/lib7zip.a
+
+OBJECTS := $(patsubst %.c,$(OBJ)/%.o,$(SRC_C) $(LUA_C) $(MP3_C)) \
+           $(patsubst %.cpp,$(OBJ)/%.o,$(SRC_CXX)) \
+           $(patsubst %.asm,$(OBJ)/%.asm.o,$(ALL_ASM)) \
+           $(OBJ)/src/Gens.res.o
+
+.PHONY: all clean
+all: $(TARGET)
+
+# 7-Zip registers its codecs and archive handlers through static initializers,
+# so the archive is linked whole rather than letting the linker drop objects
+# that nothing appears to reference.
+$(TARGET): $(OBJECTS) $(SEVENZIP_LIB)
+	@mkdir -p $(dir $@)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJECTS) \
+		-Wl,--whole-archive $(SEVENZIP_LIB) -Wl,--no-whole-archive \
+		$(LDLIBS)
+	@echo "[OK] $@"
+
+$(SEVENZIP_LIB): $(SEVENZIP_OBJ)
+	@mkdir -p $(dir $@)
+	$(CROSS)-ar rcs $@ $(SEVENZIP_OBJ)
+
+# ---------------------------------------------------------------------------
+# The generated 68000 cores
+# ---------------------------------------------------------------------------
+
+$(BUILD)/tools/mainstar: Starscream/Main68k/Star.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) -O2 -w -o $@ $<
+
+$(BUILD)/tools/substar: Starscream/Sub68k/Star.c
+	@mkdir -p $(dir $@)
+	$(HOSTCC) -O2 -w -o $@ $<
+
+Starscream/Main68k/main68k.asm: $(BUILD)/tools/mainstar
+	cd Starscream/Main68k && $(CURDIR)/$< main68k.asm -hog -name main68k_
+
+Starscream/Sub68k/sub68k.asm: $(BUILD)/tools/substar
+	cd Starscream/Sub68k && $(CURDIR)/$< sub68k.asm -hog -name sub68k_
+
+# ---------------------------------------------------------------------------
+# Compilation
+# ---------------------------------------------------------------------------
+
+$(OBJ)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(OBJ)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+# Assembly objects carry a .asm.o suffix: src/pwm.c and src/pwm.asm both exist
+# and would otherwise write the same src/pwm.o. Visual Studio sidestepped this
+# by putting the two kinds of object in different directories.
+#
+# NASM resolves %include relative to -i, which is how the project file calls it.
+# label-orphan is silenced because the DECL macros in nasmhead.inc deliberately
+# emit bare labels; leaving it on buries real errors in thousands of lines.
+$(OBJ)/%.asm.o: %.asm
+	@mkdir -p $(dir $@)
+	$(NASM) -i src/ -i $(dir $<) -w-label-orphan -f win32 -o $@ $<
+
+$(OBJ)/src/Gens.res.o: src/Gens.rc
+	@mkdir -p $(dir $@)
+	$(WINDRES) -Isrc -DGENS_WINDRES -O coff -i $< -o $@
+
+clean:
+	rm -rf $(BUILD) $(GEN_ASM)
+
+-include $(OBJECTS:.o=.d) $(SEVENZIP_OBJ:.o=.d)

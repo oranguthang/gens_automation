@@ -10,7 +10,7 @@ extern "C"
 
 #include "../Common/StreamUtils.h"
 
-#include "MyAES.h"
+#include "MyAes.h"
 #include "Sha1.h"
 #include "ZipStrong.h"
 

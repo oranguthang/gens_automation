@@ -26,10 +26,10 @@
 #include <windows.h>
 #include "G_main.h"
 #include "ggenie.h"
-#include "mem_M68K.h"
-#include "cpu_68k.h"
-#include "rom.h"
-#include "misc.h"
+#include "Mem_M68k.h"
+#include "Cpu_68k.h"
+#include "Rom.h"
+#include "Misc.h"
 
 struct GG_Code Liste_GG[256] = {{"\0", "\0", 0, 0, 0, 0, 0}};
 int List_GG_Max_Active_Index = 0; // fix for Fix_Codes checking all 256 codes every time, which was slowing down emulation significantly because it gets called so often

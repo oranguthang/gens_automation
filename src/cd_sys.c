@@ -5,12 +5,12 @@
 #include "gens.h"
 #include "G_dsound.h"
 #include "cdda_mp3.h"
-#include "lc89510.h"
+#include "LC89510.h"
 #include "Star_68k.h"
-#include "Mem_M68K.h"
-#include "Mem_S68K.h"
+#include "Mem_M68k.h"
+#include "Mem_S68k.h"
 #include "save.h"
-#include "misc.h"
+#include "Misc.h"
 
 int File_Add_Delay = 0;
 
@@ -1008,66 +1008,43 @@ void Write_CD_Audio(short *Buf, int rate, int channel, int _length)
 
 	if (channel == 2)
 	{
-		__asm
+		/* Resample stereo CD audio into the ring buffer. Was MSVC inline
+		 * assembly; pos_src is a 16.16 fixed-point cursor into the source and
+		 * pas_src the step, so the source index is the integer part. */
+		unsigned int dst = (unsigned int)CD_Audio_Buffer_Write_Pos;
+		unsigned int src = 0;
+		unsigned int i;
+
+		for (i = 0; i < _length_dst; i++)
 		{
-			mov edi, CD_Audio_Buffer_Write_Pos
-			mov ebx, Buf
-			xor esi, esi
-			mov ecx, _length_dst
-			xor eax, eax
-			mov edx, pas_src
-			dec ecx
-			jmp short loop_stereo
+			CD_Audio_Buffer_L[dst] = Buf[src * 2 + 0];
+			CD_Audio_Buffer_R[dst] = Buf[src * 2 + 1];
 
-align 16
-
-loop_stereo:
-			movsx eax, word ptr [ebx + esi * 4]
-			mov CD_Audio_Buffer_L[edi * 4], eax
-			movsx eax, word ptr [ebx + esi * 4 + 2]
-			mov CD_Audio_Buffer_R[edi * 4], eax
-			mov esi, dword ptr pos_src
-			inc edi
-			add esi, edx
-			and edi, 0xFFF
-			mov dword ptr pos_src, esi
-			shr esi, 16
-			dec ecx
-			jns short loop_stereo
-
-			mov CD_Audio_Buffer_Write_Pos, edi
+			dst = (dst + 1) & 0xFFF;
+			pos_src += pas_src;
+			src = pos_src >> 16;
 		}
+
+		CD_Audio_Buffer_Write_Pos = (int)dst;
 	}
 	else
 	{
-		__asm
+		/* Same as the stereo path, one sample per frame fed to both channels. */
+		unsigned int dst = (unsigned int)CD_Audio_Buffer_Write_Pos;
+		unsigned int src = 0;
+		unsigned int i;
+
+		for (i = 0; i < _length_dst; i++)
 		{
-			mov edi, CD_Audio_Buffer_Write_Pos
-			mov ebx, Buf
-			xor esi, esi
-			mov ecx, _length_dst
-			xor eax, eax
-			mov edx, pas_src
-			dec ecx
-			jmp short loop_mono
+			CD_Audio_Buffer_L[dst] = Buf[src];
+			CD_Audio_Buffer_R[dst] = Buf[src];
 
-align 16
-
-loop_mono:
-			movsx eax, word ptr [ebx + esi * 2]
-			mov CD_Audio_Buffer_L[edi * 4], eax
-			mov CD_Audio_Buffer_R[edi * 4], eax
-			mov esi, dword ptr pos_src
-			inc edi
-			add esi, edx
-			and edi, 0xFFF
-			mov dword ptr pos_src, esi
-			shr esi, 16
-			dec ecx
-			jns short loop_mono
-
-			mov CD_Audio_Buffer_Write_Pos, edi
+			dst = (dst + 1) & 0xFFF;
+			pos_src += pas_src;
+			src = pos_src >> 16;
 		}
+
+		CD_Audio_Buffer_Write_Pos = (int)dst;
 	}
 
 #ifdef DEBUG_CD
@@ -1123,38 +1100,27 @@ void Update_CD_Audio(int **buf, int _length)
 			CD_Audio_Buffer_L[readPos] = (CD_Audio_Buffer_L[readPos] * CDDAVol) >> 8;
 			CD_Audio_Buffer_R[readPos] = (CD_Audio_Buffer_R[readPos] * CDDAVol) >> 8;
 		}
-		__asm
+		/* Mix the CD audio ring buffer into the output. Was MSVC inline
+		 * assembly; both channels start from the same read position and the
+		 * position after the run becomes the new one. */
+		unsigned int pos = (unsigned int)CD_Audio_Buffer_Read_Pos;
+		int n;
+
+		for (n = 0; n < _length; n++)
 		{
-			mov ecx, _length
-			mov esi, CD_Audio_Buffer_Read_Pos
-			mov edi, Buf_L
-			dec ecx
-
-loop_L:
-			mov eax, CD_Audio_Buffer_L[esi * 4]
-			add [edi], eax
-			inc esi
-			add edi, 4
-			and esi, 0xFFF
-			dec ecx
-			jns short loop_L
-
-			mov ecx, _length
-			mov esi, CD_Audio_Buffer_Read_Pos
-			mov edi, Buf_R
-			dec ecx
-
-loop_R:
-			mov eax, CD_Audio_Buffer_R[esi * 4]
-			add [edi], eax
-			inc esi
-			add edi, 4
-			and esi, 0xFFF
-			dec ecx
-			jns short loop_R
-
-			mov CD_Audio_Buffer_Read_Pos, esi
+			Buf_L[n] += CD_Audio_Buffer_L[pos];
+			pos = (pos + 1) & 0xFFF;
 		}
+
+		pos = (unsigned int)CD_Audio_Buffer_Read_Pos;
+
+		for (n = 0; n < _length; n++)
+		{
+			Buf_R[n] += CD_Audio_Buffer_R[pos];
+			pos = (pos + 1) & 0xFFF;
+		}
+
+		CD_Audio_Buffer_Read_Pos = (int)pos;
 	}
 	else
 	{

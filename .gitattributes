@@ -1,0 +1,38 @@
+# Normalize line endings: store LF in the repo and check out LF everywhere, so
+# editors that save CRLF on Windows no longer produce whole-file diffs.
+* text=auto eol=lf
+
+# Text sources (explicit for clarity; covered by the rule above)
+*.c        text eol=lf
+*.cpp      text eol=lf
+*.h        text eol=lf
+*.inc      text eol=lf
+*.asm      text eol=lf
+*.lua      text eol=lf
+*.md       text eol=lf
+*.txt      text eol=lf
+Makefile   text eol=lf
+Dockerfile text eol=lf
+.gitignore text eol=lf
+
+# Files the Visual Studio IDE owns and rewrites: keep CRLF, which is what it
+# writes. .rc is in this group because the resource editor rewrites it too.
+*.sln      text eol=crlf
+*.vcxproj  text eol=crlf
+*.vcproj   text eol=crlf
+*.filters  text eol=crlf
+*.bat      text eol=crlf
+*.rc       text eol=crlf
+
+# Binary / toolchain artifacts -- git must never touch these
+*.exe      binary
+*.dll      binary
+*.lib      binary
+*.png      binary
+*.ico      binary
+*.bmp      binary
+*.wav      binary
+*.zip      binary
+*.7z       binary
+*.gmv      binary
+*.genstate binary

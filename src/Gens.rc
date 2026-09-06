@@ -7,7 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include "afxres.h"
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -25,12 +25,19 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Dialog Info
 //
 
+// windres cannot parse DLGINIT, which the Visual Studio resource editor emits
+// for a combo box with design-time data ("3 buttons" here). Nothing in Gens
+// reads resource type 240 -- this is a plain Win32 application with no MFC,
+// so the entry is inert. The MinGW build omits it; the Visual Studio build is
+// unchanged.
+#ifndef GENS_WINDRES
 IDD_CONTROLLER DLGINIT
 BEGIN
     IDC_COMBO_PADP1, 0x403, 10, 0
 0x2033, 0x7562, 0x7474, 0x6e6f, 0x0073, 
     0
 END
+#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -750,26 +757,26 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_GENS                ICON                    "resource\\Gens2.ico"
-IDI_SONIC               ICON                    "resource\\sonic.ico"
-IDI_LUA                 ICON                    "resource\\lua.ico"
+IDI_GENS                ICON                    "resource/Gens2.ico"
+IDI_SONIC               ICON                    "resource/sonic.ico"
+IDI_LUA                 ICON                    "resource/lua.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
-IDB_RECT_BLANC          BITMAP                  "resource\\bitmap1.bmp"
-IDB_RECT_BLEU           BITMAP                  "resource\\bmp00000.bmp"
-IDB_RECT_ROUGE          BITMAP                  "resource\\bmp00002.bmp"
-IDB_RECT_VERT           BITMAP                  "resource\\bmp00001.bmp"
-IDB_RECT_NOIR           BITMAP                  "resource\\bmp00003.bmp"
-IDB_RECT_CYAN           BITMAP                  "resource\\bmp00004.bmp"
-IDB_RECT_VIOLET         BITMAP                  "resource\\bmp00005.bmp"
-IDB_RECT_JAUNE          BITMAP                  "resource\\bmp00006.bmp"
-IDB_LOGO_SM             BITMAP                  "resource\\gens_small.bmp"
-IDB_LOGO_BIG            BITMAP                  "resource\\gens_big.bmp"
-IDB_WARNING             BITMAP                  "resource\\bmp00007.bmp"
+IDB_RECT_BLANC          BITMAP                  "resource/bitmap1.bmp"
+IDB_RECT_BLEU           BITMAP                  "resource/bmp00000.bmp"
+IDB_RECT_ROUGE          BITMAP                  "resource/bmp00002.bmp"
+IDB_RECT_VERT           BITMAP                  "resource/bmp00001.bmp"
+IDB_RECT_NOIR           BITMAP                  "resource/bmp00003.bmp"
+IDB_RECT_CYAN           BITMAP                  "resource/bmp00004.bmp"
+IDB_RECT_VIOLET         BITMAP                  "resource/bmp00005.bmp"
+IDB_RECT_JAUNE          BITMAP                  "resource/bmp00006.bmp"
+IDB_LOGO_SM             BITMAP                  "resource/gens_small.bmp"
+IDB_LOGO_BIG            BITMAP                  "resource/gens_big.bmp"
+IDB_WARNING             BITMAP                  "resource/bmp00007.bmp"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -858,7 +865,7 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
+
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 

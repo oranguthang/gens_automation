@@ -40,8 +40,15 @@ extern "C" {
 };
 
 char *mapped;
-uint32 Current_PC;
-int Debug = 1;
+
+/* Current_PC and Debug belong to the debugger: Debug.cpp sets Current_PC from
+ * the CPU context before disassembling and Gens.cpp owns Debug. tracer.cpp
+ * used to define its own copies, which the MSVC linker silently discarded --
+ * it keeps the first definition and both of those files link earlier, so the
+ * "= 1" never took effect. Declaring them extern keeps that behaviour and
+ * stops it depending on link order. */
+extern uint32 Current_PC;
+extern int Debug;
 
 const char * InitTrace()
 {
