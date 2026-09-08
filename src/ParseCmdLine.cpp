@@ -14,6 +14,7 @@
 #include "automation.h"
 #include "state_dump.h"
 #include "bintrace.h"
+#include "sound_trace.h"
 #include "gens.h"
 
 using namespace std;
@@ -37,7 +38,8 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		"-screenshot-interval", "-screenshot-dir", "-reference-dir", "-max-frames", "-max-diffs", "-max-memory-diffs", "-frameskip", "-turbo", "-nosound", "-window-x", "-window-y", "-diff-color",
 		"-dump-state-dir", "-dump-state-interval", "-dump-state-start", "-dump-state-end", "-save-state-dumps", "-compare-state-dumps", "-memory-after-visual", "-no-memory-diffs",
 		"-trace-breakpoint", "-trace-frames", "-trace-log", "-trace-start", "-trace-end",
-		"-bintrace", "-bintrace-start", "-bintrace-end", "-bintrace-vdp", "-bintrace-dma", ""};	//Hint:  to add new commandlines, start by inserting them here.
+		"-bintrace", "-bintrace-start", "-bintrace-end", "-bintrace-vdp", "-bintrace-dma",
+		"-sound-trace", "-sound-start-frame", "-sound-end-frame", ""};	//Hint:  to add new commandlines, start by inserting them here.
 
 	//Strings that will get parsed:
 	string CfgToLoad = "";		//Cfg filename
@@ -85,6 +87,9 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	string BinTraceEndStr = "";			// End frame for binary trace
 	string BinTraceVDPStr = "";			// Log VDP accesses (1 = yes, 0 = no)
 	string BinTraceDMAStr = "";			// Log DMA transfers (1 = yes, 0 = no)
+	string SoundTracePathStr = "";		// YM2612/PSG register trace output
+	string SoundTraceStartStr = "";		// First frame to record
+	string SoundTraceEndStr = "";		// Last frame to record
 
 	//Temps for finding string list
 	int commandBegin = 0;	//Beginning of Command
@@ -235,7 +240,16 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 		case 36: //-bintrace-dma
 			BinTraceDMAStr = newCommand;
 			break;
-		case 37: //  (a filename on its own, this must come BEFORE any other options on the commandline)
+		case 37: //-sound-trace
+			SoundTracePathStr = newCommand;
+			break;
+		case 38: //-sound-start-frame
+			SoundTraceStartStr = newCommand;
+			break;
+		case 39: //-sound-end-frame
+			SoundTraceEndStr = newCommand;
+			break;
+		case 40: //  (a filename on its own, this must come BEFORE any other options on the commandline)
 			if(newCommand[0] != '-')
 				FileToLoad = newCommand;
 			break;
@@ -479,6 +493,14 @@ void ParseCmdLine(LPSTR lpCmdLine, HWND HWnd)
 	{
 		TraceEndFrame = atoi(TraceEndStr.c_str());
 		if (TraceEndFrame < 0) TraceEndFrame = 0;
+	}
+
+	if (SoundTracePathStr[0])
+	{
+		int startFrame = SoundTraceStartStr[0] ? atoi(SoundTraceStartStr.c_str()) : 0;
+		int endFrame = SoundTraceEndStr[0] ? atoi(SoundTraceEndStr.c_str()) : 0;
+		if (!SoundTrace_Open(SoundTracePathStr.c_str(), startFrame, endFrame))
+			fprintf(stderr, "failed to open sound trace %s\n", SoundTracePathStr.c_str());
 	}
 
 	// Binary trace parameters

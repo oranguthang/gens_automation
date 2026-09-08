@@ -16,6 +16,8 @@ section .text align=64
 	extern _YM2612_Write
 	extern _YM2612_Read
 	extern _PSG_Write
+	extern _SoundTrace_YMWrite
+	extern _SoundTrace_PSGWrite
 	extern Write_Byte_VDP_Data
 	extern Write_Word_VDP_Data
 	extern Read_VDP_Status
@@ -387,8 +389,16 @@ section .text align=64
 
 	ALIGN4
 
-	DECLF Z80_WriteB_YM2612, 8
+DECLF Z80_WriteB_YM2612, 8
 		and ecx, 0x3
+		push edx
+		push ecx
+		push edx
+		push ecx
+		call _SoundTrace_YMWrite
+		add esp, 8
+		pop ecx
+		pop edx
 		push edx
 		push ecx
 		call _YM2612_Write
@@ -401,6 +411,11 @@ section .text align=64
 		cmp ecx, 0x7F11
 		jne short .other
 
+		push edx
+		push edx
+		call _SoundTrace_PSGWrite
+		add esp, 4
+		pop edx
 		push edx
 		call _PSG_Write
 		pop edx

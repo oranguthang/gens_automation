@@ -99,6 +99,34 @@ Frame-based CPU instruction tracing.
 | `-trace-start N` | Start CPU trace at frame N |
 | `-trace-end N` | Stop CPU trace at frame N (max 100 frames) |
 
+### Z80 Sound Register Tracing
+
+Record the register stream written by the emulated Z80 to the YM2612 and
+SN76489.  YM address-port writes are folded into logical register writes, so
+each CSV row contains the chip port, register address and value rather than a
+pair of bus transactions.
+
+| Argument | Description |
+|----------|-------------|
+| `-sound-trace path` | Write the sound register stream as CSV |
+| `-sound-start-frame N` | First frame to record (default: 0) |
+| `-sound-end-frame N` | Last frame to record, inclusive (0 = no limit) |
+
+Sound must be enabled before device initialization.  For deterministic
+automation, pass a dedicated configuration with `-cfg` and `[Sound] State=1`;
+do not combine sound tracing with `-nosound`.
+
+```cmd
+Gens.exe -cfg sound-trace.cfg -rom game.bin -play movie.gmv ^
+  -sound-trace build/sound.csv -sound-start-frame 320 -sound-end-frame 457 ^
+  -screenshot-interval 1000 -screenshot-dir build/frames ^
+  -max-frames 458 -turbo -frameskip 8
+```
+
+CSV columns are `sequence,frame,chip,port,address,value`.  The trace hook is
+placed in the Z80 memory handlers immediately before the normal chip write, so
+it records the actual driver output without changing chip emulation.
+
 ### Other Options
 
 | Argument | Description |
@@ -135,6 +163,7 @@ Designed for analyzing disassembled ROMs with LLM assistance:
 ### Tracing
 - Binary trace system for compact memory/DMA logging
 - Frame-based CPU tracing mode
+- Z80 YM2612/SN76489 logical register tracing
 - Fixed delayed start tracing bug
 
 ### Build System
